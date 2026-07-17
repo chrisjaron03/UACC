@@ -76,6 +76,7 @@ from uacc.core.window_manager import (
 )
 
 from uacc.actions.artistic_painter import ArtisticPainter
+from uacc.workflows import get_store, Workflow, WorkflowStep, workflow_step
 
 from uacc_mcp.utils import (
     format_error,
@@ -1316,6 +1317,220 @@ def computer_control_guide() -> str:
 - `paint_preset` — Paint preset designs in MS Paint
 - `paint_image` — Sketch outline of any image in MS Paint
 """
+
+
+# ═══════════════════════════════════════════════════════════════
+#  WORKFLOW MEMORY — Persistent, reusable automation sequences
+# ═══════════════════════════════════════════════════════════════
+
+
+@mcp.tool()
+def create_workflow(
+    name: str,
+    description: str = "",
+    steps: list[dict] | None = None,
+    tags: list[str] | None = None,
+) -> str:
+    """Create or overwrite a reusable automation workflow.
+
+    Workflows are persistent named sequences of MCP tool calls that
+    can be replayed with `run_workflow`. Any agent can save its
+    successful multi-step automation as a workflow, building up a
+    library of proven UI patterns.
+
+    Args:
+        name: Unique name for the workflow (e.g. \"open_notepad_type_hello\").
+        description: Human-readable description of what this workflow does.
+        steps: List of step dicts, each with \"tool\" and \"params\" keys.
+               Example: [{\"tool\": \"launch_app\", \"params\": {\"name_or_path\": \"notepad\"}}]
+        tags: Optional tags for categorising workflows.
+
+    Returns:
+        JSON with success status and workflow details.
+    """
+    try:
+        parsed_steps = []
+        for s in (steps or []):
+            parsed_steps.append(WorkflowStep(
+                tool=s.get("tool", ""),
+                params=s.get("params", {}),
+            ))
+
+        wf = Workflow(
+            name=name,
+            description=description,
+            steps=parsed_steps,
+            tags=tags or [],
+        )
+
+        store = get_store()
+        path = store.save(wf)
+
+        return json.dumps({
+            "success": True,
+            "workflow": wf.to_dict(),
+            "path": str(path),
+            "message": f"Workflow '{name}' created with {wf.step_count} step(s)",
+        })
+
+    except Exception as exc:
+        return json.dumps({"success": False, "error": format_error(exc, "Create workflow failed")})
+
+
+@mcp.tool()
+def list_workflows(tag: str | None = None) -> str:
+    """List all saved automation workflows.
+
+    Args:
+        tag: Optional tag to filter by (e.g. \"office\", \"notepad\", \"browser\").
+
+    Returns:
+        JSON with list of workflows (name, description, step count, run count).
+    """
+    try:
+        store = get_store()
+        workflows = store.list(tag=tag)
+
+        return json.dumps({
+            "success": True,
+            "count": len(workflows),
+            "workflows": workflows,
+        })
+
+    except Exception as exc:
+        return json.dumps({"success": False, "error": format_error(exc, "List workflows failed")})
+
+
+@mcp.tool()
+def get_workflow(name: str) -> str:
+    """Get the full details and steps of a saved workflow.
+
+    Args:
+        name: Name of the workflow to retrieve.
+
+    Returns:
+        JSON with workflow metadata and all step definitions.
+    """
+    try:
+        store = get_store()
+        wf = store.get(name)
+
+        if wf is None:
+            return json.dumps({
+                "success": False,
+                "error": f"Workflow '{name}' not found",
+            })
+
+        return json.dumps({
+            "success": True,
+            "workflow": wf.to_dict(),
+        })
+
+    except Exception as exc:
+        return json.dumps({"success": False, "error": format_error(exc, "Get workflow failed")})
+
+
+@mcp.tool()
+def delete_workflow(name: str) -> str:
+    """Delete a saved workflow.
+
+    Args:
+        name: Name of the workflow to delete.
+
+    Returns:
+        JSON with success status.
+    """
+    try:
+        store = get_store()
+        existed = store.delete(name)
+
+        return json.dumps({
+            "success": existed,
+            "message": f"Workflow '{name}' deleted" if existed else f"Workflow '{name}' not found",
+        })
+
+    except Exception as exc:
+        return json.dumps({"success": False, "error": format_error(exc, "Delete workflow failed")})
+
+
+@mcp.tool()
+def run_workflow(name: str) -> str:
+    """Execute a saved workflow step by step.
+
+    Replays every step in the workflow sequentially, calling the
+    corresponding MCP tool with its saved parameters. After execution,
+    the workflow's run counter is incremented.
+
+    Args:
+        name: Name of the workflow to execute.
+
+    Returns:
+        JSON with execution results for every step.
+    """
+    try:
+        store = get_store()
+        wf = store.get(name)
+
+        if wf is None:
+            return json.dumps({
+                "success": False,
+                "error": f"Workflow '{name}' not found",
+            })
+
+        results = []
+        all_succeeded = True
+
+        for i, step in enumerate(wf.steps):
+            tool_name = step.tool
+            params = step.params
+
+            # Look up the MCP tool function from the global namespace
+            tool_fn = globals().get(tool_name)
+
+            if tool_fn is None:
+                all_succeeded = False
+                results.append({
+                    "step": i + 1,
+                    "tool": tool_name,
+                    "error": f"Unknown tool: {tool_name}",
+                })
+                continue
+
+            try:
+                raw = tool_fn(**params)
+                # Most tools return JSON strings; parse to check success
+                parsed = json.loads(raw) if isinstance(raw, str) else raw
+                step_ok = parsed.get("success", False)
+                if not step_ok:
+                    all_succeeded = False
+                results.append({
+                    "step": i + 1,
+                    "tool": tool_name,
+                    "success": step_ok,
+                    "result": parsed,
+                })
+            except Exception as exc:
+                all_succeeded = False
+                results.append({
+                    "step": i + 1,
+                    "tool": tool_name,
+                    "error": str(exc),
+                })
+
+        if all_succeeded:
+            store.increment_run_count(name)
+
+        return json.dumps({
+            "success": all_succeeded,
+            "workflow": name,
+            "total_steps": len(wf.steps),
+            "steps_succeeded": sum(1 for r in results if r.get("success")),
+            "steps_failed": sum(1 for r in results if "error" in r or not r.get("success")),
+            "results": results,
+        })
+
+    except Exception as exc:
+        return json.dumps({"success": False, "error": format_error(exc, "Run workflow failed")})
 
 
 # ═══════════════════════════════════════════════════════════════
