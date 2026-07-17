@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uacc"
-version = "0.1.0"
+version = "0.2.0"
 description = "Universal AI Computer Control — Let any LLM control a computer with pixel-precise UI interactions"
 readme = "README.md"
 requires-python = ">=3.10"

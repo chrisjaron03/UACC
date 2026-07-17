@@ -5,6 +5,17 @@ All notable changes to UACC will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-07-18
+
+### Added
+
+- **MCP Server** — Full MCP server with stdio, SSE, and Streamable HTTP transports
+  - 9 tools: `screenshot`, `get_screen_info`, `click`, `type_text`, `hotkey`, `scroll`, `drag`, `hover`, `find_element`
+  - 2 resources: `uacc://screen/text-map`, `uacc://config`
+- **Workflow Memory** — Persistent multi-step automation sequences as reusable workflows
+  - `create_workflow`, `list_workflows`, `get_workflow`, `delete_workflow`, `run_workflow`
+- **Comprehensive Test Suite** — Full test coverage for MCP server and core infrastructure
+
 ## [0.1.0] — 2026-07-12
 
 ### 🎉 Initial Release

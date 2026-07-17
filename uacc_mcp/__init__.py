@@ -5,4 +5,4 @@ Exposes UACC's computer-control capabilities as MCP tools that any
 AI agent (Claude Desktop, Cursor, Cline, etc.) can call directly.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
