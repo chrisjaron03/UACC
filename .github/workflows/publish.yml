@@ -16,10 +16,8 @@ jobs:
       - name: Install build tools
         run: pip install build twine
       - name: Build package
-        working-directory: uacc
         run: python -m build
       - name: Publish to PyPI
-        working-directory: uacc
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}

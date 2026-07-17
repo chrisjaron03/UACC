@@ -1,2 +1,0 @@
-uacc
-uacc_mcp

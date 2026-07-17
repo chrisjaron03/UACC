@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uacc"
+version = "0.1.0"
+description = "Universal AI Computer Control — Let any LLM control a computer with pixel-precise UI interactions"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    {name = "UACC Contributors", email = "chrisjaron99@gmail.com"}
+]
+keywords = ["mcp", "computer-control", "ai-agent", "ui-automation", "desktop-automation"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+
+dependencies = [
+    "mss>=9.0",
+    "Pillow>=10.0",
+    "numpy>=1.24",
+    "pyautogui>=0.9.54",
+    "pynput>=1.7",
+    "pywinauto>=0.6.8",
+    "easyocr>=1.7",
+    "openai>=1.0",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "scikit-image>=0.21",
+    "mcp[cli]>=1.0",
+    "psutil>=5.9.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.22.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/uacc-project/uacc"
+Repository = "https://github.com/uacc-project/uacc"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1",
+]
+
+[project.scripts]
+uacc-mcp = "uacc_mcp.server:main"
+uacc-ui = "uacc.web.server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["uacc*", "uacc_mcp*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
