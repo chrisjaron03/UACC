@@ -1,0 +1,3529 @@
+═══════════════════════════════════════════════════════════════════
+UACC MCP USAGE LOG — Comprehensive test run
+Started: 2026-07-17 20:30 IST (approx)
+═══════════════════════════════════════════════════════════════════
+
+
+────────────────────────────────────────────────────────────
+  0. PYTHON & ENVIRONMENT
+────────────────────────────────────────────────────────────
+Python: 3.13.13 (main, May 10 2026, 19:31:06) [MSC v.1944 64 bit (AMD64)]
+Platform: win32
+CWD: C:\Users\chris\Desktop\UACC
+Executable: C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe
+Prefix (venv): C:\Users\chris\Desktop\UACC\.venv
+Base prefix: C:\Users\chris\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none
+Is venv: True
+
+────────────────────────────────────────────────────────────
+  1. MCP SERVER MODULE IMPORT
+────────────────────────────────────────────────────────────
+
+>> uacc_mcp.server
+  FAIL: ModuleNotFoundError: No module named 'pydantic_core._pydantic_core'
+  Traceback: Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 41, in <lambda>
+    try_it('uacc_mcp.server', lambda: __import__('uacc_mcp.server'))
+                                      ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp\server.py", line 40, in <module>
+    from mcp.server.fastmcp import FastMCP
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\mcp\__init__.py", line 1, in <module>
+    from .client.session import ClientSession
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\mcp\client\session.py", line 7, in <module>
+    from pydantic import AnyUrl, TypeAdapter
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\__init__.py", line 5, in <module>
+    from ._migration import getattr_migration
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\_migration.py", line 4, in <module>
+    from pydantic.warnings import PydanticDeprecatedSince20
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\warnings.py", line 5, in <module>
+    from .version import version_short
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\version.py", line 7, in <module>
+    from pydantic_core import __version__ as __pydantic_core_version__
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\sit
+
+>> uacc_mcp.utils
+  FAIL: ImportError: cannot import name '_imaging' from 'PIL' (C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\__init__.py)
+  Traceback: Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 42, in <lambda>
+    try_it('uacc_mcp.utils', lambda: __import__('uacc_mcp.utils'))
+                                     ~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp\utils.py", line 14, in <module>
+    from PIL import Image
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\Image.py", line 95, in <module>
+    from . import _imaging as core
+ImportError: cannot import name '_imaging' from 'PIL' (C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\__init__.py)
+
+uacc_mcp version: 0.1.0
+
+────────────────────────────────────────────────────────────
+  2. UACC CORE IMPORTS
+────────────────────────────────────────────────────────────
+
+>> uacc.config
+  OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+>> uacc.core.screen_capture
+  FAIL: ImportError: cannot import name '_imaging' from 'PIL' (C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\__init__.py)
+  Traceback: Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 49, in <lambda>
+    try_it('uacc.core.screen_capture', lambda: __import__('uacc.core.screen_capture'))
+                                               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc\core\screen_capture.py", line 14, in <module>
+    from PIL import Image
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\Image.py", line 95, in <module>
+    from . import _imaging as core
+ImportError: cannot import name '_imaging' from 'PIL' (C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\__init__.py)
+
+
+>> uacc.core.text_map
+  FAIL: ImportError: 
+
+IMPORTANT: PLEASE READ THIS FOR ADVICE ON HOW TO SOLVE THIS ISSUE!
+
+Importing the numpy C-extensions failed. This error can happen for
+many reasons, often due to issues with your setup or how NumPy was
+installed.
+The following compiled module files exist, but seem incompatible
+with with either python 'cpython-313' or the platform 'win32':
+
+  * _multiarray_umath.cp311-win_amd64.lib
+  * _multiarray_umath.cp311-win_amd64.pyd
+
+We have compiled some common reasons and troubleshooting tips at:
+
+    https://numpy.org/devdocs/user/troubleshooting-importerror.html
+
+Please note and check the following:
+
+  * The Python version is: Python 3.13 from "C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe"
+  * The NumPy version is: "2.4.6"
+
+and make sure that they are the versions you expect.
+
+Please carefully study the information and documentation linked above.
+This is unlikely to be a NumPy issue but will be caused by a bad install
+or environment on your machine.
+
+Original error was: No module named 'numpy._core._multiarray_umath'
+
+  Traceback: Traceback (most recent call last):
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\_core\__init__.py", line 24, in <module>
+    from . import multiarray
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\_core\multiarray.py", line 11, in <module>
+    from . import _multiarray_umath, overrides
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\_core\overrides.py", line 6, in <module>
+    from numpy._core._multiarray_umath import (
+    ...<3 lines>...
+    )
+ModuleNotFoundError: No module named 'numpy._core._multiarray_umath'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 50, in <lambda>
+    try_it('uacc.core.text_map', lambda: __import__('uacc.core.text_map'))
+                                         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc\core\text_map.py", line 18, in <module>
+    from uacc.core.ocr_engine import OCRResult
+  File "C:\Users\chris\Desktop\UACC\uacc\core\ocr_engine.py", line 14, in <module>
+    import numpy as np
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\__init__.py", line 125, in <module>
+    from numpy.__config__ import show_config
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\__config__.py", line 4, i
+
+>> uacc.core.window_manager
+  OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+>> uacc.core.accessibility
+  OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+>> uacc.core.clipboard
+  OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+>> uacc.core.element_finder
+  FAIL: ImportError: cannot import name '_imaging' from 'PIL' (C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\__init__.py)
+  Traceback: Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 54, in <lambda>
+    try_it('uacc.core.element_finder', lambda: __import__('uacc.core.element_finder'))
+                                               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc\core\element_finder.py", line 20, in <module>
+    from uacc.core.screen_capture import get_screen_size
+  File "C:\Users\chris\Desktop\UACC\uacc\core\screen_capture.py", line 14, in <module>
+    from PIL import Image
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\Image.py", line 95, in <module>
+    from . import _imaging as core
+ImportError: cannot import name '_imaging' from 'PIL' (C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\__init__.py)
+
+
+>> uacc.core.grid_encoder
+  FAIL: ImportError: cannot import name '_imaging' from 'PIL' (C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\__init__.py)
+  Traceback: Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 55, in <lambda>
+    try_it('uacc.core.grid_encoder', lambda: __import__('uacc.core.grid_encoder'))
+                                             ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc\core\grid_encoder.py", line 10, in <module>
+    from PIL import Image, ImageDraw, ImageFont
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\Image.py", line 95, in <module>
+    from . import _imaging as core
+ImportError: cannot import name '_imaging' from 'PIL' (C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\__init__.py)
+
+
+>> uacc.core.ocr_engine
+  FAIL: ImportError: 
+
+IMPORTANT: PLEASE READ THIS FOR ADVICE ON HOW TO SOLVE THIS ISSUE!
+
+Importing the numpy C-extensions failed. This error can happen for
+many reasons, often due to issues with your setup or how NumPy was
+installed.
+The following compiled module files exist, but seem incompatible
+with with either python 'cpython-313' or the platform 'win32':
+
+  * _multiarray_umath.cp311-win_amd64.lib
+  * _multiarray_umath.cp311-win_amd64.pyd
+
+We have compiled some common reasons and troubleshooting tips at:
+
+    https://numpy.org/devdocs/user/troubleshooting-importerror.html
+
+Please note and check the following:
+
+  * The Python version is: Python 3.13 from "C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe"
+  * The NumPy version is: "2.4.6"
+
+and make sure that they are the versions you expect.
+
+Please carefully study the information and documentation linked above.
+This is unlikely to be a NumPy issue but will be caused by a bad install
+or environment on your machine.
+
+Original error was: No module named 'numpy._core._multiarray_umath'
+
+  Traceback: Traceback (most recent call last):
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\_core\__init__.py", line 24, in <module>
+    from . import multiarray
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\_core\multiarray.py", line 11, in <module>
+    from . import _multiarray_umath, overrides
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\_core\overrides.py", line 6, in <module>
+    from numpy._core._multiarray_umath import (
+    ...<3 lines>...
+    )
+ModuleNotFoundError: No module named 'numpy._core._multiarray_umath'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 56, in <lambda>
+    try_it('uacc.core.ocr_engine', lambda: __import__('uacc.core.ocr_engine'))
+                                           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc\core\ocr_engine.py", line 14, in <module>
+    import numpy as np
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\__init__.py", line 125, in <module>
+    from numpy.__config__ import show_config
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\__config__.py", line 4, in <module>
+    from numpy._core._multiarray_umath import (
+    ...<3 lines>...
+    )
+  File "C:\Users\chris\AppData\Loca
+
+>> uacc.core.screen_diff
+  FAIL: ImportError: 
+
+IMPORTANT: PLEASE READ THIS FOR ADVICE ON HOW TO SOLVE THIS ISSUE!
+
+Importing the numpy C-extensions failed. This error can happen for
+many reasons, often due to issues with your setup or how NumPy was
+installed.
+The following compiled module files exist, but seem incompatible
+with with either python 'cpython-313' or the platform 'win32':
+
+  * _multiarray_umath.cp311-win_amd64.lib
+  * _multiarray_umath.cp311-win_amd64.pyd
+
+We have compiled some common reasons and troubleshooting tips at:
+
+    https://numpy.org/devdocs/user/troubleshooting-importerror.html
+
+Please note and check the following:
+
+  * The Python version is: Python 3.13 from "C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe"
+  * The NumPy version is: "2.4.6"
+
+and make sure that they are the versions you expect.
+
+Please carefully study the information and documentation linked above.
+This is unlikely to be a NumPy issue but will be caused by a bad install
+or environment on your machine.
+
+Original error was: No module named 'numpy._core._multiarray_umath'
+
+  Traceback: Traceback (most recent call last):
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\_core\__init__.py", line 24, in <module>
+    from . import multiarray
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\_core\multiarray.py", line 11, in <module>
+    from . import _multiarray_umath, overrides
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\_core\overrides.py", line 6, in <module>
+    from numpy._core._multiarray_umath import (
+    ...<3 lines>...
+    )
+ModuleNotFoundError: No module named 'numpy._core._multiarray_umath'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 57, in <lambda>
+    try_it('uacc.core.screen_diff', lambda: __import__('uacc.core.screen_diff'))
+                                            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc\core\screen_diff.py", line 12, in <module>
+    import numpy as np
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\__init__.py", line 125, in <module>
+    from numpy.__config__ import show_config
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\numpy\__config__.py", line 4, in <module>
+    from numpy._core._multiarray_umath import (
+    ...<3 lines>...
+    )
+  File "C:\Users\chris\AppData
+
+>> uacc.actions.executor
+  OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+>> uacc.actions.schema
+  OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+>> uacc.actions.artistic_painter
+  FAIL: ImportError: cannot import name '_imaging' from 'PIL' (C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\__init__.py)
+  Traceback: Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 61, in <lambda>
+    try_it('uacc.actions.artistic_painter', lambda: __import__('uacc.actions.artistic_painter'))
+                                                    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc\actions\artistic_painter.py", line 13, in <module>
+    from PIL import Image, ImageFilter, ImageOps
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\Image.py", line 95, in <module>
+    from . import _imaging as core
+ImportError: cannot import name '_imaging' from 'PIL' (C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\__init__.py)
+
+
+>> uacc.actions.human_mimicry
+  OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+>> uacc.actions.verifier
+  FAIL: ModuleNotFoundError: No module named 'uacc.actions.verifier'
+  Traceback: Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 63, in <lambda>
+    try_it('uacc.actions.verifier', lambda: __import__('uacc.actions.verifier'))
+                                            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'uacc.actions.verifier'
+
+
+>> uacc.actions.specialists
+  FAIL: ModuleNotFoundError: No module named 'uacc.actions.specialists'
+  Traceback: Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 64, in <lambda>
+    try_it('uacc.actions.specialists', lambda: __import__('uacc.actions.specialists'))
+                                               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'uacc.actions.specialists'
+
+
+>> uacc.models.base_adapter
+  OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+>> uacc.models.vision_adapter
+  FAIL: ModuleNotFoundError: No module named 'pydantic_core._pydantic_core'
+  Traceback: Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 67, in <lambda>
+    try_it('uacc.models.vision_adapter', lambda: __import__('uacc.models.vision_adapter'))
+                                                 ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc\models\vision_adapter.py", line 12, in <module>
+    from openai import OpenAI
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\openai\__init__.py", line 9, in <module>
+    from . import types
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\openai\types\__init__.py", line 5, in <module>
+    from .batch import Batch as Batch
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\openai\types\batch.py", line 6, in <module>
+    from .._models import BaseModel
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\openai\_models.py", line 38, in <module>
+    import pydantic
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\__init__.py", line 5, in <module>
+    from ._migration import getattr_migration
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\_migration.py", line 4, in <module>
+    from pydantic.warnings import PydanticDeprecatedSince20
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\warnings.py", l
+
+>> uacc.models.text_adapter
+  FAIL: ModuleNotFoundError: No module named 'pydantic_core._pydantic_core'
+  Traceback: Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 68, in <lambda>
+    try_it('uacc.models.text_adapter', lambda: __import__('uacc.models.text_adapter'))
+                                               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc\models\text_adapter.py", line 13, in <module>
+    from openai import OpenAI
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\openai\__init__.py", line 9, in <module>
+    from . import types
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\openai\types\__init__.py", line 5, in <module>
+    from .batch import Batch as Batch
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\openai\types\batch.py", line 6, in <module>
+    from .._models import BaseModel
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\openai\_models.py", line 38, in <module>
+    import pydantic
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\__init__.py", line 5, in <module>
+    from ._migration import getattr_migration
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\_migration.py", line 4, in <module>
+    from pydantic.warnings import PydanticDeprecatedSince20
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\warnings.py", line 5, in 
+
+>> uacc.models.hybrid_adapter
+  FAIL: ModuleNotFoundError: No module named 'pydantic_core._pydantic_core'
+  Traceback: Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 69, in <lambda>
+    try_it('uacc.models.hybrid_adapter', lambda: __import__('uacc.models.hybrid_adapter'))
+                                                 ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc\models\hybrid_adapter.py", line 13, in <module>
+    from openai import OpenAI
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\openai\__init__.py", line 9, in <module>
+    from . import types
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\openai\types\__init__.py", line 5, in <module>
+    from .batch import Batch as Batch
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\openai\types\batch.py", line 6, in <module>
+    from .._models import BaseModel
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\openai\_models.py", line 38, in <module>
+    import pydantic
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\__init__.py", line 5, in <module>
+    from ._migration import getattr_migration
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\_migration.py", line 4, in <module>
+    from pydantic.warnings import PydanticDeprecatedSince20
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\warnings.py", l
+
+>> uacc.agent.controller
+  FAIL: ImportError: cannot import name '_imaging' from 'PIL' (C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\__init__.py)
+  Traceback: Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 71, in <lambda>
+    try_it('uacc.agent.controller', lambda: __import__('uacc.agent.controller'))
+                                            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc\agent\controller.py", line 23, in <module>
+    from uacc.agent.verifier import ActionVerifier
+  File "C:\Users\chris\Desktop\UACC\uacc\agent\verifier.py", line 13, in <module>
+    from PIL import Image
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\Image.py", line 95, in <module>
+    from . import _imaging as core
+ImportError: cannot import name '_imaging' from 'PIL' (C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\PIL\__init__.py)
+
+
+>> uacc.agent.memory
+  OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+>> uacc.web.server
+  FAIL: ModuleNotFoundError: No module named 'pydantic_core._pydantic_core'
+  Traceback: Traceback (most recent call last):
+  File "<string>", line 20, in try_it
+    result = fn()
+  File "<string>", line 74, in <lambda>
+    try_it('uacc.web.server', lambda: __import__('uacc.web.server'))
+                                      ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chris\Desktop\UACC\uacc\web\server.py", line 19, in <module>
+    from fastapi import FastAPI, Request
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\fastapi\__init__.py", line 7, in <module>
+    from .applications import FastAPI as FastAPI
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\fastapi\applications.py", line 10, in <module>
+    from fastapi import routing
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\fastapi\routing.py", line 31, in <module>
+    from fastapi import params
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\fastapi\params.py", line 7, in <module>
+    from fastapi.exceptions import FastAPIDeprecationWarning
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\fastapi\exceptions.py", line 5, in <module>
+    from pydantic import BaseModel, create_model
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\__init__.py", line 5, in <module>
+    from ._migration import getattr_migration
+  File "C:\Users\chris\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\pydantic\_migration.py", li
+
+────────────────────────────────────────────────────────────
+  3. CONFIG
+────────────────────────────────────────────────────────────
+Mode: hybrid
+Grid mode: medium
+Safe mode: True
+Human mimicry: True
+Action delay ms: 150
+Max iterations: 30
+Grid sizes: {'coarse': (20, 12), 'medium': (48, 27), 'fine': (192, 108), 'micro': (384, 216)}
+Project root: C:\Users\chris\Desktop\UACC
+LLM openai_model: gpt-4o
+LLM anthropic_model: claude-sonnet-4-20250514
+
+────────────────────────────────────────────────────────────
+  4. SESSION STATE (utils)
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+  0. PYTHON & ENVIRONMENT
+────────────────────────────────────────────────────────────
+Python: 3.13.13 (main, May 10 2026, 19:31:06) [MSC v.1944 64 bit (AMD64)]
+Platform: win32
+Executable: C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe
+Prefix: C:\Users\chris\Desktop\UACC\.venv
+Sys.path (stripped): ['C:\\Users\\chris\\Desktop\\UACC', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python313.zip', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\DLLs', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\Lib', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none']
+
+────────────────────────────────────────────────────────────
+  1. MCP SERVER MODULE IMPORT
+────────────────────────────────────────────────────────────
+
+▶ uacc_mcp.server
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc_mcp.utils
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+uacc_mcp version: 0.1.0
+
+────────────────────────────────────────────────────────────
+  2. UACC CORE IMPORTS
+────────────────────────────────────────────────────────────
+
+▶ uacc.config
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_capture
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.text_map
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.window_manager
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.accessibility
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.clipboard
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.element_finder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.grid_encoder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.ocr_engine
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_diff
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.executor
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.schema
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.artistic_painter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.human_mimicry
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.models.base_adapter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.agent.memory
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+────────────────────────────────────────────────────────────
+  3. CONFIG
+────────────────────────────────────────────────────────────
+Mode: hybrid
+Grid mode: medium
+Safe mode: True
+Human mimicry: True
+Action delay ms: 150
+Max iterations: 30
+Grid sizes: {'coarse': (20, 12), 'medium': (48, 27), 'fine': (192, 108), 'micro': (384, 216)}
+Project root: C:\Users\chris\Desktop\UACC
+LLM openai_model: gpt-4o
+LLM anthropic_model: claude-sonnet-4-20250514
+
+────────────────────────────────────────────────────────────
+  4. SESSION STATE (utils)
+────────────────────────────────────────────────────────────
+Singleton works: True
+Action log count: 1
+Element cache size: 3
+Find "ok": 1 match(es)
+Find "search": 1 match(es)
+Find type="button": 1 match(es)
+format_error: Test context — Error: ValueError: bad value
+format_error no context: Error: RuntimeError: connection refused
+
+────────────────────────────────────────────────────────────
+  5. IMAGE ENCODING (utils)
+────────────────────────────────────────────────────────────
+PNG base64 length: 252
+JPEG base64 length: 988
+PNG media type: image/png
+JPEG media type: image/jpeg
+WEBP media type: image/webp
+
+────────────────────────────────────────────────────────────
+  6. SCREEN CAPTURE
+────────────────────────────────────────────────────────────
+
+▶ get_screen_size()
+  ✓ OK: (1920, 1080)
+
+▶ capture_full()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=1920x1080 at 0x13B66BB4B00>
+
+▶ capture_region(0, 0, 100, 100)
+  ✓ OK: <PIL.Image.Image image mode=RGB size=100x100 at 0x13B66B7E9F0>
+
+────────────────────────────────────────────────────────────
+  7. ACTION SCHEMA
+────────────────────────────────────────────────────────────
+ClickAction: x=500 y=300 button=MouseButton.LEFT count=1
+TypeAction: text="hello world" delay=50
+HotkeyAction: keys=['ctrl', 's']
+ScrollAction: x=400 y=300 dir=ScrollDirection.DOWN amt=3
+DragAction: 100,100 -> 300,300 btn=MouseButton.LEFT
+HoverAction: x=200 y=150 dur=1000
+
+────────────────────────────────────────────────────────────
+  8. ACTION EXECUTOR
+────────────────────────────────────────────────────────────
+Executor created: mimicry=True safe=True
+Execute click result: {"success": true, "message": "Clicked at (500, 300)", "action": "click"}
+Invalid action result: {"success": false, "message": "Unknown action: not an action", "action": "unknown"}
+
+────────────────────────────────────────────────────────────
+  9. WINDOW MANAGER
+────────────────────────────────────────────────────────────
+
+▶ get_active_window()
+  ✓ OK: None
+
+▶ list_windows()
+  ✓ OK: []
+
+────────────────────────────────────────────────────────────
+  10. ACCESSIBILITY
+────────────────────────────────────────────────────────────
+
+▶ get_ui_tree()
+  ✓ OK: [UIElement(id='e1', control_type='Dialog', name='WhatsApp', bounds=(-9, -9, 1929, 1029), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[UIElement(id='e2', control_type='Pane', name='Non Client Input Sink Window', bounds=(0, 0, 1920, 40), center=(960, 20), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[]), UIElement(id='e3', control_type='Pane', name='AppWindow Custom Title Bar', bounds=(1749, 0, 19
+
+────────────────────────────────────────────────────────────
+  11. CLIPBOARD
+────────────────────────────────────────────────────────────
+
+▶ write_clipboard("UACC test text")
+  ✓ OK: {'success': True, 'message': 'Wrote 14 characters to clipboard', 'length': 14}
+
+▶ read_clipboard()
+  ✓ OK: {'success': True, 'text': 'UACC test text', 'length': 14, 'message': 'Read 14 characters from clipboard'}
+
+────────────────────────────────────────────────────────────
+  12. TEXT MAP
+────────────────────────────────────────────────────────────
+
+▶ build_text_map()
+  ✗ FAIL: TypeError: build_text_map() got an unexpected keyword argument 'label_filter'
+    Traceback: Traceback (most recent call last):
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 40, in try_it
+    result = fn()
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 234, in <lambda>
+    try_it('build_text_map()', lambda: build_text_map(
+                                       ~~~~~~~~~~~~~~^
+        screen_width=1920,
+        ^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        label_filter='interactive',
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ))
+    ^
+TypeError: build_text_map() got an unexpected keyword argument 'label_filter'
+
+
+────────────────────────────────────────────────────────────
+  13. HUMAN MIMICRY
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+  0. PYTHON & ENVIRONMENT
+────────────────────────────────────────────────────────────
+Python: 3.13.13 (main, May 10 2026, 19:31:06) [MSC v.1944 64 bit (AMD64)]
+Platform: win32
+Executable: C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe
+Prefix: C:\Users\chris\Desktop\UACC\.venv
+Sys.path (stripped): ['C:\\Users\\chris\\Desktop\\UACC', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python313.zip', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\DLLs', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\Lib', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none']
+
+────────────────────────────────────────────────────────────
+  1. MCP SERVER MODULE IMPORT
+────────────────────────────────────────────────────────────
+
+▶ uacc_mcp.server
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc_mcp.utils
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+uacc_mcp version: 0.1.0
+
+────────────────────────────────────────────────────────────
+  2. UACC CORE IMPORTS
+────────────────────────────────────────────────────────────
+
+▶ uacc.config
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_capture
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.text_map
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.window_manager
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.accessibility
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.clipboard
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.element_finder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.grid_encoder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.ocr_engine
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_diff
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.executor
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.schema
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.artistic_painter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.human_mimicry
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.models.base_adapter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.agent.memory
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+────────────────────────────────────────────────────────────
+  3. CONFIG
+────────────────────────────────────────────────────────────
+Mode: hybrid
+Grid mode: medium
+Safe mode: True
+Human mimicry: True
+Action delay ms: 150
+Max iterations: 30
+Grid sizes: {'coarse': (20, 12), 'medium': (48, 27), 'fine': (192, 108), 'micro': (384, 216)}
+Project root: C:\Users\chris\Desktop\UACC
+LLM openai_model: gpt-4o
+LLM anthropic_model: claude-sonnet-4-20250514
+
+────────────────────────────────────────────────────────────
+  4. SESSION STATE (utils)
+────────────────────────────────────────────────────────────
+Singleton works: True
+Action log count: 1
+Element cache size: 3
+Find "ok": 1 match(es)
+Find "search": 1 match(es)
+Find type="button": 1 match(es)
+format_error: Test context — Error: ValueError: bad value
+format_error no context: Error: RuntimeError: connection refused
+
+────────────────────────────────────────────────────────────
+  5. IMAGE ENCODING (utils)
+────────────────────────────────────────────────────────────
+PNG base64 length: 252
+JPEG base64 length: 988
+PNG media type: image/png
+JPEG media type: image/jpeg
+WEBP media type: image/webp
+
+────────────────────────────────────────────────────────────
+  6. SCREEN CAPTURE
+────────────────────────────────────────────────────────────
+
+▶ get_screen_size()
+  ✓ OK: (1920, 1080)
+
+▶ capture_full()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=1920x1080 at 0x2A8E3DD4B00>
+
+▶ capture_region(0, 0, 100, 100)
+  ✓ OK: <PIL.Image.Image image mode=RGB size=100x100 at 0x2A8E3D9E9F0>
+
+────────────────────────────────────────────────────────────
+  7. ACTION SCHEMA
+────────────────────────────────────────────────────────────
+ClickAction: x=500 y=300 button=MouseButton.LEFT count=1
+TypeAction: text="hello world" delay=50
+HotkeyAction: keys=['ctrl', 's']
+ScrollAction: x=400 y=300 dir=ScrollDirection.DOWN amt=3
+DragAction: 100,100 -> 300,300 btn=MouseButton.LEFT
+HoverAction: x=200 y=150 dur=1000
+
+────────────────────────────────────────────────────────────
+  8. ACTION EXECUTOR
+────────────────────────────────────────────────────────────
+Executor created: mimicry=True safe=True
+Execute click result: {"success": true, "message": "Clicked at (500, 300)", "action": "click"}
+Invalid action result: {"success": false, "message": "Unknown action: not an action", "action": "unknown"}
+
+────────────────────────────────────────────────────────────
+  9. WINDOW MANAGER
+────────────────────────────────────────────────────────────
+
+▶ get_active_window()
+  ✓ OK: None
+
+▶ list_windows()
+  ✓ OK: []
+
+────────────────────────────────────────────────────────────
+  10. ACCESSIBILITY
+────────────────────────────────────────────────────────────
+
+▶ get_ui_tree()
+  ✓ OK: [UIElement(id='e1', control_type='Pane', name='Taskbar', bounds=(0, 1020, 1920, 1080), center=(960, 1050), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[UIElement(id='e2', control_type='Pane', name='', bounds=(1569, 1020, 1920, 1080), center=(1744, 1050), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[]), UIElement(id='e3', control_type='Pane', name='Running applications', bounds=(489, 1020, 1265, 1080), center=(877
+
+────────────────────────────────────────────────────────────
+  11. CLIPBOARD
+────────────────────────────────────────────────────────────
+
+▶ write_clipboard("UACC test text")
+  ✓ OK: {'success': True, 'message': 'Wrote 14 characters to clipboard', 'length': 14}
+
+▶ read_clipboard()
+  ✓ OK: {'success': True, 'text': 'UACC test text', 'length': 14, 'message': 'Read 14 characters from clipboard'}
+
+────────────────────────────────────────────────────────────
+  12. TEXT MAP
+────────────────────────────────────────────────────────────
+
+▶ build_text_map()
+  ✓ OK: TextMap(screen_width=1920, screen_height=1080, active_window='UACC Test', regions=[ScreenRegion(name='top_bar', bounds=(0, 0, 1920, 64), elements=[ScreenElement(id='e6', element_type='pane', text='', bounds=(1749, 0, 1921, 43), center=(1835, 21), clickable=False, editable=False, expandable=False, expanded=False, value='', source='accessibility'), ScreenElement(id='e7', element_type='button', text='Minimize', bounds=(1749, 0, 1806, 43), center=(1777, 21), clickable=True, editable=False, expandabl
+
+────────────────────────────────────────────────────────────
+  13. HUMAN MIMICRY
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+  0. PYTHON & ENVIRONMENT
+────────────────────────────────────────────────────────────
+Python: 3.13.13 (main, May 10 2026, 19:31:06) [MSC v.1944 64 bit (AMD64)]
+Platform: win32
+Executable: C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe
+Prefix: C:\Users\chris\Desktop\UACC\.venv
+Sys.path (stripped): ['C:\\Users\\chris\\Desktop\\UACC', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python313.zip', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\DLLs', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\Lib', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none']
+
+────────────────────────────────────────────────────────────
+  1. MCP SERVER MODULE IMPORT
+────────────────────────────────────────────────────────────
+
+▶ uacc_mcp.server
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc_mcp.utils
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+uacc_mcp version: 0.1.0
+
+────────────────────────────────────────────────────────────
+  2. UACC CORE IMPORTS
+────────────────────────────────────────────────────────────
+
+▶ uacc.config
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_capture
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.text_map
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.window_manager
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.accessibility
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.clipboard
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.element_finder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.grid_encoder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.ocr_engine
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_diff
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.executor
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.schema
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.artistic_painter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.human_mimicry
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.models.base_adapter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.agent.memory
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+────────────────────────────────────────────────────────────
+  3. CONFIG
+────────────────────────────────────────────────────────────
+Mode: hybrid
+Grid mode: medium
+Safe mode: True
+Human mimicry: True
+Action delay ms: 150
+Max iterations: 30
+Grid sizes: {'coarse': (20, 12), 'medium': (48, 27), 'fine': (192, 108), 'micro': (384, 216)}
+Project root: C:\Users\chris\Desktop\UACC
+LLM openai_model: gpt-4o
+LLM anthropic_model: claude-sonnet-4-20250514
+
+────────────────────────────────────────────────────────────
+  4. SESSION STATE (utils)
+────────────────────────────────────────────────────────────
+Singleton works: True
+Action log count: 1
+Element cache size: 3
+Find "ok": 1 match(es)
+Find "search": 1 match(es)
+Find type="button": 1 match(es)
+format_error: Test context — Error: ValueError: bad value
+format_error no context: Error: RuntimeError: connection refused
+
+────────────────────────────────────────────────────────────
+  5. IMAGE ENCODING (utils)
+────────────────────────────────────────────────────────────
+PNG base64 length: 252
+JPEG base64 length: 988
+PNG media type: image/png
+JPEG media type: image/jpeg
+WEBP media type: image/webp
+
+────────────────────────────────────────────────────────────
+  6. SCREEN CAPTURE
+────────────────────────────────────────────────────────────
+
+▶ get_screen_size()
+  ✓ OK: (1920, 1080)
+
+▶ capture_full()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=1920x1080 at 0x212FFA54B00>
+
+▶ capture_region(0, 0, 100, 100)
+  ✓ OK: <PIL.Image.Image image mode=RGB size=100x100 at 0x212FFA1E9F0>
+
+────────────────────────────────────────────────────────────
+  7. ACTION SCHEMA
+────────────────────────────────────────────────────────────
+ClickAction: x=500 y=300 button=MouseButton.LEFT count=1
+TypeAction: text="hello world" delay=50
+HotkeyAction: keys=['ctrl', 's']
+ScrollAction: x=400 y=300 dir=ScrollDirection.DOWN amt=3
+DragAction: 100,100 -> 300,300 btn=MouseButton.LEFT
+HoverAction: x=200 y=150 dur=1000
+
+────────────────────────────────────────────────────────────
+  8. ACTION EXECUTOR
+────────────────────────────────────────────────────────────
+Executor created: mimicry=True safe=True
+Execute click result: {"success": true, "message": "Clicked at (500, 300)", "action": "click"}
+Invalid action result: {"success": false, "message": "Unknown action: not an action", "action": "unknown"}
+
+────────────────────────────────────────────────────────────
+  9. WINDOW MANAGER
+────────────────────────────────────────────────────────────
+
+▶ get_active_window()
+  ✓ OK: None
+
+▶ list_windows()
+  ✓ OK: []
+
+────────────────────────────────────────────────────────────
+  10. ACCESSIBILITY
+────────────────────────────────────────────────────────────
+
+▶ get_ui_tree()
+  ✓ OK: [UIElement(id='e1', control_type='Dialog', name='Hermes', bounds=(-9, -9, 1929, 1029), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[UIElement(id='e2', control_type='Pane', name='', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[]), UIElement(id='e3', control_type='Pane', name='Hermes', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, edi
+
+────────────────────────────────────────────────────────────
+  11. CLIPBOARD
+────────────────────────────────────────────────────────────
+
+▶ write_clipboard("UACC test text")
+  ✓ OK: {'success': True, 'message': 'Wrote 14 characters to clipboard', 'length': 14}
+
+▶ read_clipboard()
+  ✓ OK: {'success': True, 'text': 'UACC test text', 'length': 14, 'message': 'Read 14 characters from clipboard'}
+
+────────────────────────────────────────────────────────────
+  12. TEXT MAP
+────────────────────────────────────────────────────────────
+
+▶ build_text_map()
+  ✓ OK: TextMap(screen_width=1920, screen_height=1080, active_window='UACC Test', regions=[ScreenRegion(name='top_bar', bounds=(0, 0, 1920, 64), elements=[ScreenElement(id='e6', element_type='pane', text='', bounds=(1749, 0, 1921, 43), center=(1835, 21), clickable=False, editable=False, expandable=False, expanded=False, value='', source='accessibility'), ScreenElement(id='e7', element_type='button', text='Minimize', bounds=(1749, 0, 1806, 43), center=(1777, 21), clickable=True, editable=False, expandabl
+
+────────────────────────────────────────────────────────────
+  13. HUMAN MIMICRY
+────────────────────────────────────────────────────────────
+Human mimicry functions: move_mouse_human, type_human, drag_human
+
+────────────────────────────────────────────────────────────
+  14. MCP SERVER TOOLS
+────────────────────────────────────────────────────────────
+MCP tools registered: 25
+  - screenshot: Capture a screenshot of the screen.
+
+Returns a base64-encoded image. Capture the...
+  - get_screen_info: Get a structured text map of all UI elements on the current screen.
+
+Returns the...
+  - click: Click at exact screen coordinates.
+
+Args:
+    x: X coordinate (pixels from left ...
+  - type_text: Type text via the keyboard.
+
+Types at the current cursor/focus position. Use cli...
+  - hotkey: Press a keyboard shortcut combination.
+
+Args:
+    keys: List of keys to press si...
+  - scroll: Scroll at a specific screen position.
+
+Args:
+    x: X coordinate to scroll at.
+ ...
+  - drag: Drag from one screen position to another (click-hold-move-release).
+
+Args:
+    s...
+  - hover: Move the mouse to a position and hold (useful for triggering tooltips and hover ...
+  - find_element: Find UI elements on the screen by name and/or type.
+
+Scans the accessibility tre...
+  - get_active_window: Get information about the currently focused window.
+
+Returns the window title, b...
+  - list_windows: List all open windows with their titles, bounds, and process info.
+
+Use this to ...
+  - focus_window: Bring a window to the foreground by title.
+
+Uses case-insensitive substring matc...
+  - resize_window: Resize a window to specific dimensions.
+
+Args:
+    title: Substring to match aga...
+  - move_window: Move a window to a new position on screen.
+
+Args:
+    title: Substring to match ...
+  - minimize_maximize: Minimize, maximize, or restore a window.
+
+Args:
+    title: Substring to match ag...
+  - launch_app: Launch an application by name or path.
+
+Supports common app names ("notepad", "c...
+  - open_url: Open a URL in the default web browser.
+
+Args:
+    url: The URL to open. Will aut...
+  - clipboard_read: Read the current clipboard text content.
+
+Useful for extracting text that was co...
+  - clipboard_write: Write text to the clipboard.
+
+The text can then be pasted into any application u...
+  - get_mouse_position: Get the current mouse cursor position.
+
+Returns:
+    JSON with x, y coordinates ...
+  - wait_for_element: Wait until a UI element appears on screen.
+
+Polls the screen repeatedly until an...
+  - click_element: Find a UI element by name and click it.
+
+This is the "easy mode" alternative to ...
+  - get_action_history: Get the recent action history log.
+
+Returns the last N actions performed through...
+  - paint_preset: Paint a preset design on screen inside MS Paint.
+
+Launches Paint, matches the sc...
+  - paint_image: Sketch the outline of an image file on screen inside MS Paint.
+
+Launches Paint, ...
+
+────────────────────────────────────────────────────────────
+  15. SCREEN DIFF
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+  0. PYTHON & ENVIRONMENT
+────────────────────────────────────────────────────────────
+Python: 3.13.13 (main, May 10 2026, 19:31:06) [MSC v.1944 64 bit (AMD64)]
+Platform: win32
+Executable: C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe
+Prefix: C:\Users\chris\Desktop\UACC\.venv
+Sys.path (stripped): ['C:\\Users\\chris\\Desktop\\UACC', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python313.zip', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\DLLs', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\Lib', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none']
+
+────────────────────────────────────────────────────────────
+  1. MCP SERVER MODULE IMPORT
+────────────────────────────────────────────────────────────
+
+▶ uacc_mcp.server
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc_mcp.utils
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+uacc_mcp version: 0.1.0
+
+────────────────────────────────────────────────────────────
+  2. UACC CORE IMPORTS
+────────────────────────────────────────────────────────────
+
+▶ uacc.config
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_capture
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.text_map
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.window_manager
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.accessibility
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.clipboard
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.element_finder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.grid_encoder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.ocr_engine
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_diff
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.executor
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.schema
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.artistic_painter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.human_mimicry
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.models.base_adapter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.agent.memory
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+────────────────────────────────────────────────────────────
+  3. CONFIG
+────────────────────────────────────────────────────────────
+Mode: hybrid
+Grid mode: medium
+Safe mode: True
+Human mimicry: True
+Action delay ms: 150
+Max iterations: 30
+Grid sizes: {'coarse': (20, 12), 'medium': (48, 27), 'fine': (192, 108), 'micro': (384, 216)}
+Project root: C:\Users\chris\Desktop\UACC
+LLM openai_model: gpt-4o
+LLM anthropic_model: claude-sonnet-4-20250514
+
+────────────────────────────────────────────────────────────
+  4. SESSION STATE (utils)
+────────────────────────────────────────────────────────────
+Singleton works: True
+Action log count: 1
+Element cache size: 3
+Find "ok": 1 match(es)
+Find "search": 1 match(es)
+Find type="button": 1 match(es)
+format_error: Test context — Error: ValueError: bad value
+format_error no context: Error: RuntimeError: connection refused
+
+────────────────────────────────────────────────────────────
+  5. IMAGE ENCODING (utils)
+────────────────────────────────────────────────────────────
+PNG base64 length: 252
+JPEG base64 length: 988
+PNG media type: image/png
+JPEG media type: image/jpeg
+WEBP media type: image/webp
+
+────────────────────────────────────────────────────────────
+  6. SCREEN CAPTURE
+────────────────────────────────────────────────────────────
+
+▶ get_screen_size()
+  ✓ OK: (1920, 1080)
+
+▶ capture_full()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=1920x1080 at 0x1B9336B4B00>
+
+▶ capture_region(0, 0, 100, 100)
+  ✓ OK: <PIL.Image.Image image mode=RGB size=100x100 at 0x1B93367E9F0>
+
+────────────────────────────────────────────────────────────
+  7. ACTION SCHEMA
+────────────────────────────────────────────────────────────
+ClickAction: x=500 y=300 button=MouseButton.LEFT count=1
+TypeAction: text="hello world" delay=50
+HotkeyAction: keys=['ctrl', 's']
+ScrollAction: x=400 y=300 dir=ScrollDirection.DOWN amt=3
+DragAction: 100,100 -> 300,300 btn=MouseButton.LEFT
+HoverAction: x=200 y=150 dur=1000
+
+────────────────────────────────────────────────────────────
+  8. ACTION EXECUTOR
+────────────────────────────────────────────────────────────
+Executor created: mimicry=True safe=True
+Execute click result: {"success": true, "message": "Clicked at (500, 300)", "action": "click"}
+Invalid action result: {"success": false, "message": "Unknown action: not an action", "action": "unknown"}
+
+────────────────────────────────────────────────────────────
+  9. WINDOW MANAGER
+────────────────────────────────────────────────────────────
+
+▶ get_active_window()
+  ✓ OK: None
+
+▶ list_windows()
+  ✓ OK: []
+
+────────────────────────────────────────────────────────────
+  10. ACCESSIBILITY
+────────────────────────────────────────────────────────────
+
+▶ get_ui_tree()
+  ✓ OK: [UIElement(id='e1', control_type='Dialog', name='Hermes', bounds=(-9, -9, 1929, 1029), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[UIElement(id='e2', control_type='Pane', name='', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[]), UIElement(id='e3', control_type='Pane', name='Hermes', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, edi
+
+────────────────────────────────────────────────────────────
+  11. CLIPBOARD
+────────────────────────────────────────────────────────────
+
+▶ write_clipboard("UACC test text")
+  ✓ OK: {'success': True, 'message': 'Wrote 14 characters to clipboard', 'length': 14}
+
+▶ read_clipboard()
+  ✓ OK: {'success': True, 'text': 'UACC test text', 'length': 14, 'message': 'Read 14 characters from clipboard'}
+
+────────────────────────────────────────────────────────────
+  12. TEXT MAP
+────────────────────────────────────────────────────────────
+
+▶ build_text_map()
+  ✓ OK: TextMap(screen_width=1920, screen_height=1080, active_window='UACC Test', regions=[ScreenRegion(name='top_bar', bounds=(0, 0, 1920, 64), elements=[ScreenElement(id='e6', element_type='pane', text='', bounds=(1749, 0, 1921, 43), center=(1835, 21), clickable=False, editable=False, expandable=False, expanded=False, value='', source='accessibility'), ScreenElement(id='e7', element_type='button', text='Minimize', bounds=(1749, 0, 1806, 43), center=(1777, 21), clickable=True, editable=False, expandabl
+
+────────────────────────────────────────────────────────────
+  13. HUMAN MIMICRY
+────────────────────────────────────────────────────────────
+Human mimicry functions: move_mouse_human, type_human, drag_human
+
+────────────────────────────────────────────────────────────
+  14. MCP SERVER TOOLS
+────────────────────────────────────────────────────────────
+MCP tools registered: 25
+  - screenshot: Capture a screenshot of the screen.
+
+Returns a base64-encoded image. Capture the...
+  - get_screen_info: Get a structured text map of all UI elements on the current screen.
+
+Returns the...
+  - click: Click at exact screen coordinates.
+
+Args:
+    x: X coordinate (pixels from left ...
+  - type_text: Type text via the keyboard.
+
+Types at the current cursor/focus position. Use cli...
+  - hotkey: Press a keyboard shortcut combination.
+
+Args:
+    keys: List of keys to press si...
+  - scroll: Scroll at a specific screen position.
+
+Args:
+    x: X coordinate to scroll at.
+ ...
+  - drag: Drag from one screen position to another (click-hold-move-release).
+
+Args:
+    s...
+  - hover: Move the mouse to a position and hold (useful for triggering tooltips and hover ...
+  - find_element: Find UI elements on the screen by name and/or type.
+
+Scans the accessibility tre...
+  - get_active_window: Get information about the currently focused window.
+
+Returns the window title, b...
+  - list_windows: List all open windows with their titles, bounds, and process info.
+
+Use this to ...
+  - focus_window: Bring a window to the foreground by title.
+
+Uses case-insensitive substring matc...
+  - resize_window: Resize a window to specific dimensions.
+
+Args:
+    title: Substring to match aga...
+  - move_window: Move a window to a new position on screen.
+
+Args:
+    title: Substring to match ...
+  - minimize_maximize: Minimize, maximize, or restore a window.
+
+Args:
+    title: Substring to match ag...
+  - launch_app: Launch an application by name or path.
+
+Supports common app names ("notepad", "c...
+  - open_url: Open a URL in the default web browser.
+
+Args:
+    url: The URL to open. Will aut...
+  - clipboard_read: Read the current clipboard text content.
+
+Useful for extracting text that was co...
+  - clipboard_write: Write text to the clipboard.
+
+The text can then be pasted into any application u...
+  - get_mouse_position: Get the current mouse cursor position.
+
+Returns:
+    JSON with x, y coordinates ...
+  - wait_for_element: Wait until a UI element appears on screen.
+
+Polls the screen repeatedly until an...
+  - click_element: Find a UI element by name and click it.
+
+This is the "easy mode" alternative to ...
+  - get_action_history: Get the recent action history log.
+
+Returns the last N actions performed through...
+  - paint_preset: Paint a preset design on screen inside MS Paint.
+
+Launches Paint, matches the sc...
+  - paint_image: Sketch the outline of an image file on screen inside MS Paint.
+
+Launches Paint, ...
+
+────────────────────────────────────────────────────────────
+  15. SCREEN DIFF
+────────────────────────────────────────────────────────────
+
+▶ has_changed(same)
+  ✓ OK: False
+
+▶ has_changed(different)
+  ✓ OK: True
+
+▶ compute_diff()
+  ✓ OK: DiffResult(changed=True, changed_percentage=100.0, regions=[ChangedRegion(bounds=(0, 0, 100, 50), pixel_count=5000, change_intensity=170.0)], total_pixels_changed=5000)
+
+────────────────────────────────────────────────────────────
+  16. GRID ENCODER
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+  0. PYTHON & ENVIRONMENT
+────────────────────────────────────────────────────────────
+Python: 3.13.13 (main, May 10 2026, 19:31:06) [MSC v.1944 64 bit (AMD64)]
+Platform: win32
+Executable: C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe
+Prefix: C:\Users\chris\Desktop\UACC\.venv
+Sys.path (stripped): ['C:\\Users\\chris\\Desktop\\UACC', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python313.zip', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\DLLs', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\Lib', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none']
+
+────────────────────────────────────────────────────────────
+  1. MCP SERVER MODULE IMPORT
+────────────────────────────────────────────────────────────
+
+▶ uacc_mcp.server
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc_mcp.utils
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+uacc_mcp version: 0.1.0
+
+────────────────────────────────────────────────────────────
+  2. UACC CORE IMPORTS
+────────────────────────────────────────────────────────────
+
+▶ uacc.config
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_capture
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.text_map
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.window_manager
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.accessibility
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.clipboard
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.element_finder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.grid_encoder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.ocr_engine
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_diff
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.executor
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.schema
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.artistic_painter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.human_mimicry
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.models.base_adapter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.agent.memory
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+────────────────────────────────────────────────────────────
+  3. CONFIG
+────────────────────────────────────────────────────────────
+Mode: hybrid
+Grid mode: medium
+Safe mode: True
+Human mimicry: True
+Action delay ms: 150
+Max iterations: 30
+Grid sizes: {'coarse': (20, 12), 'medium': (48, 27), 'fine': (192, 108), 'micro': (384, 216)}
+Project root: C:\Users\chris\Desktop\UACC
+LLM openai_model: gpt-4o
+LLM anthropic_model: claude-sonnet-4-20250514
+
+────────────────────────────────────────────────────────────
+  4. SESSION STATE (utils)
+────────────────────────────────────────────────────────────
+Singleton works: True
+Action log count: 1
+Element cache size: 3
+Find "ok": 1 match(es)
+Find "search": 1 match(es)
+Find type="button": 1 match(es)
+format_error: Test context — Error: ValueError: bad value
+format_error no context: Error: RuntimeError: connection refused
+
+────────────────────────────────────────────────────────────
+  5. IMAGE ENCODING (utils)
+────────────────────────────────────────────────────────────
+PNG base64 length: 252
+JPEG base64 length: 988
+PNG media type: image/png
+JPEG media type: image/jpeg
+WEBP media type: image/webp
+
+────────────────────────────────────────────────────────────
+  6. SCREEN CAPTURE
+────────────────────────────────────────────────────────────
+
+▶ get_screen_size()
+  ✓ OK: (1920, 1080)
+
+▶ capture_full()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=1920x1080 at 0x1E5A96C4B00>
+
+▶ capture_region(0, 0, 100, 100)
+  ✓ OK: <PIL.Image.Image image mode=RGB size=100x100 at 0x1E5A968E9F0>
+
+────────────────────────────────────────────────────────────
+  7. ACTION SCHEMA
+────────────────────────────────────────────────────────────
+ClickAction: x=500 y=300 button=MouseButton.LEFT count=1
+TypeAction: text="hello world" delay=50
+HotkeyAction: keys=['ctrl', 's']
+ScrollAction: x=400 y=300 dir=ScrollDirection.DOWN amt=3
+DragAction: 100,100 -> 300,300 btn=MouseButton.LEFT
+HoverAction: x=200 y=150 dur=1000
+
+────────────────────────────────────────────────────────────
+  8. ACTION EXECUTOR
+────────────────────────────────────────────────────────────
+Executor created: mimicry=True safe=True
+Execute click result: {"success": true, "message": "Clicked at (500, 300)", "action": "click"}
+Invalid action result: {"success": false, "message": "Unknown action: not an action", "action": "unknown"}
+
+────────────────────────────────────────────────────────────
+  9. WINDOW MANAGER
+────────────────────────────────────────────────────────────
+
+▶ get_active_window()
+  ✓ OK: None
+
+▶ list_windows()
+  ✓ OK: []
+
+────────────────────────────────────────────────────────────
+  10. ACCESSIBILITY
+────────────────────────────────────────────────────────────
+
+▶ get_ui_tree()
+  ✓ OK: [UIElement(id='e1', control_type='Dialog', name='Hermes', bounds=(-9, -9, 1929, 1029), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[UIElement(id='e2', control_type='Pane', name='', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[]), UIElement(id='e3', control_type='Pane', name='Hermes', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, edi
+
+────────────────────────────────────────────────────────────
+  11. CLIPBOARD
+────────────────────────────────────────────────────────────
+
+▶ write_clipboard("UACC test text")
+  ✓ OK: {'success': True, 'message': 'Wrote 14 characters to clipboard', 'length': 14}
+
+▶ read_clipboard()
+  ✓ OK: {'success': True, 'text': 'UACC test text', 'length': 14, 'message': 'Read 14 characters from clipboard'}
+
+────────────────────────────────────────────────────────────
+  12. TEXT MAP
+────────────────────────────────────────────────────────────
+
+▶ build_text_map()
+  ✓ OK: TextMap(screen_width=1920, screen_height=1080, active_window='UACC Test', regions=[ScreenRegion(name='top_bar', bounds=(0, 0, 1920, 64), elements=[ScreenElement(id='e6', element_type='pane', text='', bounds=(1749, 0, 1921, 43), center=(1835, 21), clickable=False, editable=False, expandable=False, expanded=False, value='', source='accessibility'), ScreenElement(id='e7', element_type='button', text='Minimize', bounds=(1749, 0, 1806, 43), center=(1777, 21), clickable=True, editable=False, expandabl
+
+────────────────────────────────────────────────────────────
+  13. HUMAN MIMICRY
+────────────────────────────────────────────────────────────
+Human mimicry functions: move_mouse_human, type_human, drag_human
+
+────────────────────────────────────────────────────────────
+  14. MCP SERVER TOOLS
+────────────────────────────────────────────────────────────
+MCP tools registered: 25
+  - screenshot: Capture a screenshot of the screen.
+
+Returns a base64-encoded image. Capture the...
+  - get_screen_info: Get a structured text map of all UI elements on the current screen.
+
+Returns the...
+  - click: Click at exact screen coordinates.
+
+Args:
+    x: X coordinate (pixels from left ...
+  - type_text: Type text via the keyboard.
+
+Types at the current cursor/focus position. Use cli...
+  - hotkey: Press a keyboard shortcut combination.
+
+Args:
+    keys: List of keys to press si...
+  - scroll: Scroll at a specific screen position.
+
+Args:
+    x: X coordinate to scroll at.
+ ...
+  - drag: Drag from one screen position to another (click-hold-move-release).
+
+Args:
+    s...
+  - hover: Move the mouse to a position and hold (useful for triggering tooltips and hover ...
+  - find_element: Find UI elements on the screen by name and/or type.
+
+Scans the accessibility tre...
+  - get_active_window: Get information about the currently focused window.
+
+Returns the window title, b...
+  - list_windows: List all open windows with their titles, bounds, and process info.
+
+Use this to ...
+  - focus_window: Bring a window to the foreground by title.
+
+Uses case-insensitive substring matc...
+  - resize_window: Resize a window to specific dimensions.
+
+Args:
+    title: Substring to match aga...
+  - move_window: Move a window to a new position on screen.
+
+Args:
+    title: Substring to match ...
+  - minimize_maximize: Minimize, maximize, or restore a window.
+
+Args:
+    title: Substring to match ag...
+  - launch_app: Launch an application by name or path.
+
+Supports common app names ("notepad", "c...
+  - open_url: Open a URL in the default web browser.
+
+Args:
+    url: The URL to open. Will aut...
+  - clipboard_read: Read the current clipboard text content.
+
+Useful for extracting text that was co...
+  - clipboard_write: Write text to the clipboard.
+
+The text can then be pasted into any application u...
+  - get_mouse_position: Get the current mouse cursor position.
+
+Returns:
+    JSON with x, y coordinates ...
+  - wait_for_element: Wait until a UI element appears on screen.
+
+Polls the screen repeatedly until an...
+  - click_element: Find a UI element by name and click it.
+
+This is the "easy mode" alternative to ...
+  - get_action_history: Get the recent action history log.
+
+Returns the last N actions performed through...
+  - paint_preset: Paint a preset design on screen inside MS Paint.
+
+Launches Paint, matches the sc...
+  - paint_image: Sketch the outline of an image file on screen inside MS Paint.
+
+Launches Paint, ...
+
+────────────────────────────────────────────────────────────
+  15. SCREEN DIFF
+────────────────────────────────────────────────────────────
+
+▶ has_changed(same)
+  ✓ OK: False
+
+▶ has_changed(different)
+  ✓ OK: True
+
+▶ compute_diff()
+  ✓ OK: DiffResult(changed=True, changed_percentage=100.0, regions=[ChangedRegion(bounds=(0, 0, 100, 50), pixel_count=5000, change_intensity=170.0)], total_pixels_changed=5000)
+
+────────────────────────────────────────────────────────────
+  16. GRID ENCODER
+────────────────────────────────────────────────────────────
+
+▶ overlay_grid()
+  ✗ FAIL: TypeError: overlay_grid() got an unexpected keyword argument 'grid_cols'
+    Traceback: Traceback (most recent call last):
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 40, in try_it
+    result = fn()
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 272, in <lambda>
+    try_it('overlay_grid()', lambda: overlay_grid(
+                                     ~~~~~~~~~~~~^
+        Image.new('RGB', (1920, 1080), color='white'),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        grid_cols=12,
+        ^^^^^^^^^^^^^
+        grid_rows=8,
+        ^^^^^^^^^^^^
+    ))
+    ^
+TypeError: overlay_grid() got an unexpected keyword argument 'grid_cols'
+
+
+▶ grid_cell_to_pixel()
+  ✗ FAIL: TypeError: grid_cell_to_pixel() takes from 4 to 5 positional arguments but 6 were given
+    Traceback: Traceback (most recent call last):
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 40, in try_it
+    result = fn()
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 278, in <lambda>
+    try_it('grid_cell_to_pixel()', lambda: grid_cell_to_pixel(5, 3, 12, 8, 1920, 1080))
+                                           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: grid_cell_to_pixel() takes from 4 to 5 positional arguments but 6 were given
+
+
+────────────────────────────────────────────────────────────
+  17. ELEMENT FINDER
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+  0. PYTHON & ENVIRONMENT
+────────────────────────────────────────────────────────────
+Python: 3.13.13 (main, May 10 2026, 19:31:06) [MSC v.1944 64 bit (AMD64)]
+Platform: win32
+Executable: C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe
+Prefix: C:\Users\chris\Desktop\UACC\.venv
+Sys.path (first 5): ['C:\\Users\\chris\\Desktop\\UACC', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python313.zip', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\DLLs', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\Lib', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none']
+
+────────────────────────────────────────────────────────────
+  1. MCP SERVER & CORE MODULE IMPORTS
+────────────────────────────────────────────────────────────
+
+▶ uacc_mcp.server
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc_mcp.utils
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc.config
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_capture
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.text_map
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.window_manager
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.accessibility
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.clipboard
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.element_finder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.grid_encoder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.ocr_engine
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_diff
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.executor
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.schema
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.artistic_painter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.human_mimicry
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.models.base_adapter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.agent.memory
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+uacc_mcp version: 0.1.0
+
+────────────────────────────────────────────────────────────
+  2. CONFIG
+────────────────────────────────────────────────────────────
+Mode: hybrid
+Grid mode: medium
+Safe mode: True
+Human mimicry: True
+Action delay ms: 150
+Max iterations: 30
+Grid sizes: {'coarse': (20, 12), 'medium': (48, 27), 'fine': (192, 108), 'micro': (384, 216)}
+Project root: C:\Users\chris\Desktop\UACC
+
+────────────────────────────────────────────────────────────
+  3. SESSION STATE
+────────────────────────────────────────────────────────────
+Singleton works: True
+Action log count: 1
+Element cache size: 3
+Find "ok": 1 match(es)
+Find "search": 1 match(es)
+Find type="button": 1 match(es)
+format_error: Test context — Error: ValueError: bad value
+
+────────────────────────────────────────────────────────────
+  4. IMAGE ENCODING
+────────────────────────────────────────────────────────────
+PNG base64 length: 252
+JPEG base64 length: 988
+Media types: PNG=image/png JPEG=image/jpeg
+
+────────────────────────────────────────────────────────────
+  5. SCREEN CAPTURE
+────────────────────────────────────────────────────────────
+
+▶ get_screen_size()
+  ✓ OK: (1920, 1080)
+
+▶ capture_full()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=1920x1080 at 0x243D1054B00>
+
+────────────────────────────────────────────────────────────
+  6. ACTION SCHEMA
+────────────────────────────────────────────────────────────
+Click: x=500 y=300 btn=left
+Type: text="hello" delay=50
+Hotkey: [ctrl, s]
+Scroll: (400,300) dir=down amt=3
+Drag: (100,100)->(300,300) btn=left
+Hover: (200,150) dur=1000
+
+────────────────────────────────────────────────────────────
+  7. ACTION EXECUTOR
+────────────────────────────────────────────────────────────
+Executor: mimicry=True safe=True
+Execute click: {"success": true, "message": "Clicked at (500, 300)", "action": "click"}
+
+────────────────────────────────────────────────────────────
+  8. WINDOW MANAGER
+────────────────────────────────────────────────────────────
+
+▶ get_active_window()
+  ✓ OK: None
+
+▶ list_windows()
+  ✓ OK: []
+
+────────────────────────────────────────────────────────────
+  9. ACCESSIBILITY
+────────────────────────────────────────────────────────────
+
+▶ get_ui_tree()
+  ✓ OK: [UIElement(id='e1', control_type='Dialog', name='Hermes', bounds=(-9, -9, 1929, 1029), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[UIElement(id='e2', control_type='Pane', name='', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[]), UIElement(id='e3', control_type='Pane', name='Hermes', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, edi
+Top element: Dialog "Hermes"
+
+────────────────────────────────────────────────────────────
+  10. CLIPBOARD
+────────────────────────────────────────────────────────────
+
+▶ write_clipboard("UACC test text")
+  ✓ OK: {'success': True, 'message': 'Wrote 14 characters to clipboard', 'length': 14}
+
+▶ read_clipboard()
+  ✓ OK: {'success': True, 'text': 'UACC test text', 'length': 14, 'message': 'Read 14 characters from clipboard'}
+
+────────────────────────────────────────────────────────────
+  11. TEXT MAP
+────────────────────────────────────────────────────────────
+
+▶ build_text_map()
+  ✓ OK: TextMap(screen_width=1920, screen_height=1080, active_window='UACC Test', regions=[ScreenRegion(name='top_bar', bounds=(0, 0, 1920, 64), elements=[ScreenElement(id='e6', element_type='pane', text='', bounds=(1749, 0, 1921, 43), center=(1835, 21), clickable=False, editable=False, expandable=False, expanded=False, value='', source='accessibility'), ScreenElement(id='e7', element_type='button', text='Minimize', bounds=(1749, 0, 1806, 43), center=(1777, 21), clickable=True, editable=False, expandabl
+TextMap: 15 elements
+Compact: Screen: 1920x1080 | Window: "UACC Test"
+─── Interactive Elements ───
+  [e7] button         "Minimize"                        at (1777, 21)      clickable
+  [e8] button         "Restore"                         at (1834, 21)      clickable
+  [e9] button         "Close"                           at (1
+
+────────────────────────────────────────────────────────────
+  12. HUMAN MIMICRY
+────────────────────────────────────────────────────────────
+Functions: move_mouse_human, type_human, drag_human
+
+────────────────────────────────────────────────────────────
+  13. MCP SERVER TOOLS
+────────────────────────────────────────────────────────────
+Total MCP tools: 25
+  screenshot
+  get_screen_info
+  click
+  type_text
+  hotkey
+  scroll
+  drag
+  hover
+  find_element
+  get_active_window
+  list_windows
+  focus_window
+  resize_window
+  move_window
+  minimize_maximize
+  launch_app
+  open_url
+  clipboard_read
+  clipboard_write
+  get_mouse_position
+  wait_for_element
+  click_element
+  get_action_history
+  paint_preset
+  paint_image
+
+────────────────────────────────────────────────────────────
+  14. SCREEN DIFF
+────────────────────────────────────────────────────────────
+
+▶ has_changed(same)
+  ✓ OK: False
+
+▶ has_changed(different)
+  ✓ OK: True
+
+▶ compute_diff()
+  ✓ OK: DiffResult(changed=True, changed_percentage=100.0, regions=[ChangedRegion(bounds=(0, 0, 100, 50), pixel_count=5000, change_intensity=170.0)], total_pixels_changed=5000)
+
+────────────────────────────────────────────────────────────
+  15. GRID ENCODER
+────────────────────────────────────────────────────────────
+
+▶ overlay_grid(mode="coarse")
+  ✓ OK: <PIL.Image.Image image mode=RGBA size=800x600 at 0x243EAC64260>
+
+▶ grid_cell_to_pixel(5,3,1920,1080)
+  ✓ OK: (220, 140)
+
+▶ zoom_region()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=800x600 at 0x243D08B1A90>
+
+────────────────────────────────────────────────────────────
+  16. ELEMENT FINDER
+────────────────────────────────────────────────────────────
+
+▶ get_mouse_position()
+  ✓ OK: {'success': True, 'x': 500, 'y': 300, 'message': 'Mouse at (500, 300)'}
+
+▶ find_elements_smart(name="Hermes")
+  ✓ OK: [ElementMatch(element_id='e1', name='Hermes', element_type='dialog', center=(960, 510), bounds=(-9, -9, 1929, 1029), confidence=1.0, clickable=False, editable=False, expandable=False), ElementMatch(element_id='e3', name='Hermes', element_type='pane', center=(960, 510), bounds=(0, 0, 1920, 1020), confidence=1.0, clickable=False, editable=False, expandable=False), ElementMatch(element_id='e14', name='Hermes', element_type='text_area', center=(960, 510), bounds=(0, 0, 1920, 1020), confidence=1.0, c
+
+────────────────────────────────────────────────────────────
+  17. WEB SERVER
+────────────────────────────────────────────────────────────
+
+▶ uacc.web.server
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+────────────────────────────────────────────────────────────
+  18. MCP RESOURCES
+────────────────────────────────────────────────────────────
+
+▶ uacc://config resource
+  ✗ FAIL: AttributeError: module 'uacc_mcp' has no attribute 'uacc_config'
+    Traceback: Traceback (most recent call last):
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 34, in try_it
+    result = fn()
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 224, in <lambda>
+    try_it('uacc://config resource', lambda: __import__('uacc_mcp.server').uacc_config())
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'uacc_mcp' has no attribute 'uacc_config'
+
+
+▶ uacc://system/monitors resource
+  ✗ FAIL: AttributeError: module 'uacc_mcp' has no attribute 'monitors_resource'
+    Traceback: Traceback (most recent call last):
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 34, in try_it
+    result = fn()
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 225, in <lambda>
+    try_it('uacc://system/monitors resource', lambda: __import__('uacc_mcp.server').monitors_resource())
+                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'uacc_mcp' has no attribute 'monitors_resource'
+
+
+▶ uacc://history/actions resource
+  ✗ FAIL: AttributeError: module 'uacc_mcp' has no attribute 'action_history_resource'
+    Traceback: Traceback (most recent call last):
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 34, in try_it
+    result = fn()
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 226, in <lambda>
+    try_it('uacc://history/actions resource', lambda: __import__('uacc_mcp.server').action_history_resource())
+                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'uacc_mcp' has no attribute 'action_history_resource'
+
+
+────────────────────────────────────────────────────────────
+  19. MCP PROMPTS
+────────────────────────────────────────────────────────────
+
+▶ computer_control_guide prompt
+  ✓ OK: # UACC — Computer Control Best Practices
+
+## Recommended Workflow
+
+1. **Understand context first**
+   - Call `get_active_window` to see what app is focused
+   - Call `get_screen_info` to see all interactive elements
+   - Call `list_windows` if you need to switch between apps
+
+2. **Use smart targeting over raw coordinates**
+   - Prefer `click_element(name="Save")` over `click(x=500, y=300)`
+   - Use `find_element(name="Submit", element_type="button")` to locate elements
+   - Smart targeting uses 
+Guide length: 2725 chars
+
+────────────────────────────────────────────────────────────
+  20. MODEL ADAPTERS
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+  0. PYTHON & ENVIRONMENT
+────────────────────────────────────────────────────────────
+Python: 3.13.13 (main, May 10 2026, 19:31:06) [MSC v.1944 64 bit (AMD64)]
+Platform: win32
+Executable: C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe
+Prefix: C:\Users\chris\Desktop\UACC\.venv
+Sys.path (first 5): ['C:\\Users\\chris\\Desktop\\UACC', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python313.zip', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\DLLs', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\Lib', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none']
+
+────────────────────────────────────────────────────────────
+  1. MCP SERVER & CORE MODULE IMPORTS
+────────────────────────────────────────────────────────────
+
+▶ uacc_mcp.server
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc_mcp.utils
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc.config
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_capture
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.text_map
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.window_manager
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.accessibility
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.clipboard
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.element_finder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.grid_encoder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.ocr_engine
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_diff
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.executor
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.schema
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.artistic_painter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.human_mimicry
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.models.base_adapter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.agent.memory
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+uacc_mcp version: 0.1.0
+
+────────────────────────────────────────────────────────────
+  2. CONFIG
+────────────────────────────────────────────────────────────
+Mode: hybrid
+Grid mode: medium
+Safe mode: True
+Human mimicry: True
+Action delay ms: 150
+Max iterations: 30
+Grid sizes: {'coarse': (20, 12), 'medium': (48, 27), 'fine': (192, 108), 'micro': (384, 216)}
+Project root: C:\Users\chris\Desktop\UACC
+
+────────────────────────────────────────────────────────────
+  3. SESSION STATE
+────────────────────────────────────────────────────────────
+Singleton works: True
+Action log count: 1
+Element cache size: 3
+Find "ok": 1 match(es)
+Find "search": 1 match(es)
+Find type="button": 1 match(es)
+format_error: Test context — Error: ValueError: bad value
+
+────────────────────────────────────────────────────────────
+  4. IMAGE ENCODING
+────────────────────────────────────────────────────────────
+PNG base64 length: 252
+JPEG base64 length: 988
+Media types: PNG=image/png JPEG=image/jpeg
+
+────────────────────────────────────────────────────────────
+  5. SCREEN CAPTURE
+────────────────────────────────────────────────────────────
+
+▶ get_screen_size()
+  ✓ OK: (1920, 1080)
+
+▶ capture_full()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=1920x1080 at 0x2C97FEE4B00>
+
+────────────────────────────────────────────────────────────
+  6. ACTION SCHEMA
+────────────────────────────────────────────────────────────
+Click: x=500 y=300 btn=left
+Type: text="hello" delay=50
+Hotkey: [ctrl, s]
+Scroll: (400,300) dir=down amt=3
+Drag: (100,100)->(300,300) btn=left
+Hover: (200,150) dur=1000
+
+────────────────────────────────────────────────────────────
+  7. ACTION EXECUTOR
+────────────────────────────────────────────────────────────
+Executor: mimicry=True safe=True
+Execute click: {"success": true, "message": "Clicked at (500, 300)", "action": "click"}
+
+────────────────────────────────────────────────────────────
+  8. WINDOW MANAGER
+────────────────────────────────────────────────────────────
+
+▶ get_active_window()
+  ✓ OK: None
+
+▶ list_windows()
+  ✓ OK: []
+
+────────────────────────────────────────────────────────────
+  9. ACCESSIBILITY
+────────────────────────────────────────────────────────────
+
+▶ get_ui_tree()
+  ✓ OK: [UIElement(id='e1', control_type='Dialog', name='Hermes', bounds=(-9, -9, 1929, 1029), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[UIElement(id='e2', control_type='Pane', name='', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[]), UIElement(id='e3', control_type='Pane', name='Hermes', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, edi
+Top element: Dialog "Hermes"
+
+────────────────────────────────────────────────────────────
+  10. CLIPBOARD
+────────────────────────────────────────────────────────────
+
+▶ write_clipboard("UACC test text")
+  ✓ OK: {'success': True, 'message': 'Wrote 14 characters to clipboard', 'length': 14}
+
+▶ read_clipboard()
+  ✓ OK: {'success': True, 'text': 'UACC test text', 'length': 14, 'message': 'Read 14 characters from clipboard'}
+
+────────────────────────────────────────────────────────────
+  11. TEXT MAP
+────────────────────────────────────────────────────────────
+
+▶ build_text_map()
+  ✓ OK: TextMap(screen_width=1920, screen_height=1080, active_window='UACC Test', regions=[ScreenRegion(name='top_bar', bounds=(0, 0, 1920, 64), elements=[ScreenElement(id='e6', element_type='pane', text='', bounds=(1749, 0, 1921, 43), center=(1835, 21), clickable=False, editable=False, expandable=False, expanded=False, value='', source='accessibility'), ScreenElement(id='e7', element_type='button', text='Minimize', bounds=(1749, 0, 1806, 43), center=(1777, 21), clickable=True, editable=False, expandabl
+TextMap: 15 elements
+Compact: Screen: 1920x1080 | Window: "UACC Test"
+─── Interactive Elements ───
+  [e7] button         "Minimize"                        at (1777, 21)      clickable
+  [e8] button         "Restore"                         at (1834, 21)      clickable
+  [e9] button         "Close"                           at (1
+
+────────────────────────────────────────────────────────────
+  12. HUMAN MIMICRY
+────────────────────────────────────────────────────────────
+Functions: move_mouse_human, type_human, drag_human
+
+────────────────────────────────────────────────────────────
+  13. MCP SERVER TOOLS
+────────────────────────────────────────────────────────────
+Total MCP tools: 25
+  screenshot
+  get_screen_info
+  click
+  type_text
+  hotkey
+  scroll
+  drag
+  hover
+  find_element
+  get_active_window
+  list_windows
+  focus_window
+  resize_window
+  move_window
+  minimize_maximize
+  launch_app
+  open_url
+  clipboard_read
+  clipboard_write
+  get_mouse_position
+  wait_for_element
+  click_element
+  get_action_history
+  paint_preset
+  paint_image
+
+────────────────────────────────────────────────────────────
+  14. SCREEN DIFF
+────────────────────────────────────────────────────────────
+
+▶ has_changed(same)
+  ✓ OK: False
+
+▶ has_changed(different)
+  ✓ OK: True
+
+▶ compute_diff()
+  ✓ OK: DiffResult(changed=True, changed_percentage=100.0, regions=[ChangedRegion(bounds=(0, 0, 100, 50), pixel_count=5000, change_intensity=170.0)], total_pixels_changed=5000)
+
+────────────────────────────────────────────────────────────
+  15. GRID ENCODER
+────────────────────────────────────────────────────────────
+
+▶ overlay_grid(mode="coarse")
+  ✓ OK: <PIL.Image.Image image mode=RGBA size=800x600 at 0x2C92FC14260>
+
+▶ grid_cell_to_pixel(5,3,1920,1080)
+  ✓ OK: (220, 140)
+
+▶ zoom_region()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=800x600 at 0x2C97F711A90>
+
+────────────────────────────────────────────────────────────
+  16. ELEMENT FINDER
+────────────────────────────────────────────────────────────
+
+▶ get_mouse_position()
+  ✓ OK: {'success': True, 'x': 1171, 'y': 748, 'message': 'Mouse at (1171, 748)'}
+
+▶ find_elements_smart(name="Hermes")
+  ✓ OK: [ElementMatch(element_id='e1', name='Hermes', element_type='dialog', center=(960, 510), bounds=(-9, -9, 1929, 1029), confidence=1.0, clickable=False, editable=False, expandable=False), ElementMatch(element_id='e3', name='Hermes', element_type='pane', center=(960, 510), bounds=(0, 0, 1920, 1020), confidence=1.0, clickable=False, editable=False, expandable=False), ElementMatch(element_id='e14', name='Hermes', element_type='text_area', center=(960, 510), bounds=(0, 0, 1920, 1020), confidence=1.0, c
+
+────────────────────────────────────────────────────────────
+  17. WEB SERVER
+────────────────────────────────────────────────────────────
+
+▶ uacc.web.server
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+────────────────────────────────────────────────────────────
+  18. MCP RESOURCES
+────────────────────────────────────────────────────────────
+
+▶ uacc://config resource
+  ✓ OK: {
+  "mode": "hybrid",
+  "grid_mode": "medium",
+  "safe_mode": true,
+  "max_iterations": 30,
+  "human_mimicry": true,
+  "action_delay_ms": 150,
+  "screenshot_quality": 80
+}
+
+▶ uacc://history/actions resource
+  ✓ OK: {
+  "actions": [
+    {
+      "tool": "test_tool",
+      "params": {
+        "p": 1
+      },
+      "result": {
+        "s": true
+      },
+      "timestamp": 1784305421.1742845
+    }
+  ],
+  "count": 1
+}
+
+▶ uacc://system/monitors resource
+  ✓ OK: {
+  "monitors": [
+    {
+      "index": 0,
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 1080,
+      "is_primary": false,
+      "is_virtual": true
+    },
+    {
+      "index": 1,
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 1080,
+      "is_primary": true,
+      "is_virtual": false
+    }
+  ],
+  "count": 1
+}
+
+▶ uacc://screen/active-window resource
+  ✓ OK: {"error": "Could not determine active window"}
+
+────────────────────────────────────────────────────────────
+  19. MCP PROMPTS
+────────────────────────────────────────────────────────────
+
+▶ computer_control_guide prompt
+  ✓ OK: # UACC — Computer Control Best Practices
+
+## Recommended Workflow
+
+1. **Understand context first**
+   - Call `get_active_window` to see what app is focused
+   - Call `get_screen_info` to see all interactive elements
+   - Call `list_windows` if you need to switch between apps
+
+2. **Use smart targeting over raw coordinates**
+   - Prefer `click_element(name="Save")` over `click(x=500, y=300)`
+   - Use `find_element(name="Submit", element_type="button")` to locate elements
+   - Smart targeting uses 
+Guide length: 2725 chars
+
+────────────────────────────────────────────────────────────
+  20. MODEL ADAPTERS
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+  0. PYTHON & ENVIRONMENT
+────────────────────────────────────────────────────────────
+Python: 3.13.13 (main, May 10 2026, 19:31:06) [MSC v.1944 64 bit (AMD64)]
+Platform: win32
+Executable: C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe
+Prefix: C:\Users\chris\Desktop\UACC\.venv
+Sys.path (first 5): ['C:\\Users\\chris\\Desktop\\UACC', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python313.zip', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\DLLs', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\Lib', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none']
+
+────────────────────────────────────────────────────────────
+  1. MCP SERVER & CORE MODULE IMPORTS
+────────────────────────────────────────────────────────────
+
+▶ uacc_mcp.server
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc_mcp.utils
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc.config
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_capture
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.text_map
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.window_manager
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.accessibility
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.clipboard
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.element_finder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.grid_encoder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.ocr_engine
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_diff
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.executor
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.schema
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.artistic_painter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.human_mimicry
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.models.base_adapter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.agent.memory
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+uacc_mcp version: 0.1.0
+
+────────────────────────────────────────────────────────────
+  2. CONFIG
+────────────────────────────────────────────────────────────
+Mode: hybrid
+Grid mode: medium
+Safe mode: True
+Human mimicry: True
+Action delay ms: 150
+Max iterations: 30
+Grid sizes: {'coarse': (20, 12), 'medium': (48, 27), 'fine': (192, 108), 'micro': (384, 216)}
+Project root: C:\Users\chris\Desktop\UACC
+
+────────────────────────────────────────────────────────────
+  3. SESSION STATE
+────────────────────────────────────────────────────────────
+Singleton works: True
+Action log count: 1
+Element cache size: 3
+Find "ok": 1 match(es)
+Find "search": 1 match(es)
+Find type="button": 1 match(es)
+format_error: Test context — Error: ValueError: bad value
+
+────────────────────────────────────────────────────────────
+  4. IMAGE ENCODING
+────────────────────────────────────────────────────────────
+PNG base64 length: 252
+JPEG base64 length: 988
+Media types: PNG=image/png JPEG=image/jpeg
+
+────────────────────────────────────────────────────────────
+  5. SCREEN CAPTURE
+────────────────────────────────────────────────────────────
+
+▶ get_screen_size()
+  ✓ OK: (1920, 1080)
+
+▶ capture_full()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=1920x1080 at 0x22AD5414B00>
+
+────────────────────────────────────────────────────────────
+  6. ACTION SCHEMA
+────────────────────────────────────────────────────────────
+Click: x=500 y=300 btn=left
+Type: text="hello" delay=50
+Hotkey: [ctrl, s]
+Scroll: (400,300) dir=down amt=3
+Drag: (100,100)->(300,300) btn=left
+Hover: (200,150) dur=1000
+
+────────────────────────────────────────────────────────────
+  7. ACTION EXECUTOR
+────────────────────────────────────────────────────────────
+Executor: mimicry=True safe=True
+Execute click: {"success": true, "message": "Clicked at (500, 300)", "action": "click"}
+
+────────────────────────────────────────────────────────────
+  8. WINDOW MANAGER
+────────────────────────────────────────────────────────────
+
+▶ get_active_window()
+  ✓ OK: None
+
+▶ list_windows()
+  ✓ OK: []
+
+────────────────────────────────────────────────────────────
+  9. ACCESSIBILITY
+────────────────────────────────────────────────────────────
+
+▶ get_ui_tree()
+  ✓ OK: [UIElement(id='e1', control_type='Dialog', name='WhatsApp', bounds=(-9, -9, 1929, 1029), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[UIElement(id='e2', control_type='Pane', name='Non Client Input Sink Window', bounds=(0, 0, 1920, 40), center=(960, 20), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[]), UIElement(id='e3', control_type='Pane', name='AppWindow Custom Title Bar', bounds=(1749, 0, 19
+Top element: Dialog "WhatsApp"
+
+────────────────────────────────────────────────────────────
+  10. CLIPBOARD
+────────────────────────────────────────────────────────────
+
+▶ write_clipboard("UACC test text")
+  ✓ OK: {'success': True, 'message': 'Wrote 14 characters to clipboard', 'length': 14}
+
+▶ read_clipboard()
+  ✓ OK: {'success': True, 'text': 'UACC test text', 'length': 14, 'message': 'Read 14 characters from clipboard'}
+
+────────────────────────────────────────────────────────────
+  11. TEXT MAP
+────────────────────────────────────────────────────────────
+
+▶ build_text_map()
+  ✓ OK: TextMap(screen_width=1920, screen_height=1080, active_window='UACC Test', regions=[ScreenRegion(name='bottom_bar', bounds=(0, 1026, 1920, 1080), elements=[ScreenElement(id='e1', element_type='pane', text='Taskbar', bounds=(0, 1020, 1920, 1080), center=(960, 1050), clickable=False, editable=False, expandable=False, expanded=False, value='', source='accessibility'), ScreenElement(id='e2', element_type='pane', text='', bounds=(1569, 1020, 1920, 1080), center=(1744, 1050), clickable=False, editable=
+TextMap: 38 elements
+Compact: Screen: 1920x1080 | Window: "UACC Test"
+─── Interactive Elements ───
+  [e6] button         "Widgets 28°C Partly cloudy"      at (103, 1050)     clickable
+  [e14] button         "Start"                          at (518, 1050)     clickable
+  [e15] button         "Search"                         at (6
+
+────────────────────────────────────────────────────────────
+  12. HUMAN MIMICRY
+────────────────────────────────────────────────────────────
+Functions: move_mouse_human, type_human, drag_human
+
+────────────────────────────────────────────────────────────
+  13. MCP SERVER TOOLS
+────────────────────────────────────────────────────────────
+Total MCP tools: 25
+  screenshot
+  get_screen_info
+  click
+  type_text
+  hotkey
+  scroll
+  drag
+  hover
+  find_element
+  get_active_window
+  list_windows
+  focus_window
+  resize_window
+  move_window
+  minimize_maximize
+  launch_app
+  open_url
+  clipboard_read
+  clipboard_write
+  get_mouse_position
+  wait_for_element
+  click_element
+  get_action_history
+  paint_preset
+  paint_image
+
+────────────────────────────────────────────────────────────
+  14. SCREEN DIFF
+────────────────────────────────────────────────────────────
+
+▶ has_changed(same)
+  ✓ OK: False
+
+▶ has_changed(different)
+  ✓ OK: True
+
+▶ compute_diff()
+  ✓ OK: DiffResult(changed=True, changed_percentage=100.0, regions=[ChangedRegion(bounds=(0, 0, 100, 50), pixel_count=5000, change_intensity=170.0)], total_pixels_changed=5000)
+
+────────────────────────────────────────────────────────────
+  15. GRID ENCODER
+────────────────────────────────────────────────────────────
+
+▶ overlay_grid(mode="coarse")
+  ✓ OK: <PIL.Image.Image image mode=RGBA size=800x600 at 0x22ABE665860>
+
+▶ grid_cell_to_pixel(5,3,1920,1080)
+  ✓ OK: (220, 140)
+
+▶ zoom_region()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=800x600 at 0x22AD4C91A90>
+
+────────────────────────────────────────────────────────────
+  16. ELEMENT FINDER
+────────────────────────────────────────────────────────────
+
+▶ get_mouse_position()
+  ✓ OK: {'success': True, 'x': 1080, 'y': 706, 'message': 'Mouse at (1080, 706)'}
+
+▶ find_elements_smart(name="Hermes")
+  ✓ OK: [ElementMatch(element_id='e1', name='Hermes', element_type='dialog', center=(960, 510), bounds=(-9, -9, 1929, 1029), confidence=1.0, clickable=False, editable=False, expandable=False), ElementMatch(element_id='e3', name='Hermes', element_type='pane', center=(960, 510), bounds=(0, 0, 1920, 1020), confidence=1.0, clickable=False, editable=False, expandable=False), ElementMatch(element_id='e14', name='Hermes', element_type='text_area', center=(960, 510), bounds=(0, 0, 1920, 1020), confidence=1.0, c
+
+────────────────────────────────────────────────────────────
+  17. WEB SERVER
+────────────────────────────────────────────────────────────
+
+▶ uacc.web.server
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+────────────────────────────────────────────────────────────
+  18. MCP RESOURCES
+────────────────────────────────────────────────────────────
+
+▶ uacc://config resource
+  ✓ OK: {
+  "mode": "hybrid",
+  "grid_mode": "medium",
+  "safe_mode": true,
+  "max_iterations": 30,
+  "human_mimicry": true,
+  "action_delay_ms": 150,
+  "screenshot_quality": 80
+}
+
+▶ uacc://history/actions resource
+  ✓ OK: {
+  "actions": [
+    {
+      "tool": "test_tool",
+      "params": {
+        "p": 1
+      },
+      "result": {
+        "s": true
+      },
+      "timestamp": 1784305464.411889
+    }
+  ],
+  "count": 1
+}
+
+▶ uacc://system/monitors resource
+  ✓ OK: {
+  "monitors": [
+    {
+      "index": 0,
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 1080,
+      "is_primary": false,
+      "is_virtual": true
+    },
+    {
+      "index": 1,
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 1080,
+      "is_primary": true,
+      "is_virtual": false
+    }
+  ],
+  "count": 1
+}
+
+▶ uacc://screen/active-window resource
+  ✓ OK: {"error": "Could not determine active window"}
+
+────────────────────────────────────────────────────────────
+  19. MCP PROMPTS
+────────────────────────────────────────────────────────────
+
+▶ computer_control_guide prompt
+  ✓ OK: # UACC — Computer Control Best Practices
+
+## Recommended Workflow
+
+1. **Understand context first**
+   - Call `get_active_window` to see what app is focused
+   - Call `get_screen_info` to see all interactive elements
+   - Call `list_windows` if you need to switch between apps
+
+2. **Use smart targeting over raw coordinates**
+   - Prefer `click_element(name="Save")` over `click(x=500, y=300)`
+   - Use `find_element(name="Submit", element_type="button")` to locate elements
+   - Smart targeting uses 
+Guide length: 2725 chars
+
+────────────────────────────────────────────────────────────
+  20. MODEL ADAPTERS
+────────────────────────────────────────────────────────────
+BaseAdapter works, type=TestModel
+Adapter act result: [('done', '')]
+
+────────────────────────────────────────────────────────────
+  21. AGENT MEMORY
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+  0. PYTHON & ENVIRONMENT
+────────────────────────────────────────────────────────────
+Python: 3.13.13 (main, May 10 2026, 19:31:06) [MSC v.1944 64 bit (AMD64)]
+Platform: win32
+Executable: C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe
+Prefix: C:\Users\chris\Desktop\UACC\.venv
+Sys.path (first 5): ['C:\\Users\\chris\\Desktop\\UACC', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python313.zip', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\DLLs', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\Lib', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none']
+
+────────────────────────────────────────────────────────────
+  1. MCP SERVER & CORE MODULE IMPORTS
+────────────────────────────────────────────────────────────
+
+▶ uacc_mcp.server
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc_mcp.utils
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc.config
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_capture
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.text_map
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.window_manager
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.accessibility
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.clipboard
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.element_finder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.grid_encoder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.ocr_engine
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_diff
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.executor
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.schema
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.artistic_painter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.human_mimicry
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.models.base_adapter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.agent.memory
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+uacc_mcp version: 0.1.0
+
+────────────────────────────────────────────────────────────
+  2. CONFIG
+────────────────────────────────────────────────────────────
+Mode: hybrid
+Grid mode: medium
+Safe mode: True
+Human mimicry: True
+Action delay ms: 150
+Max iterations: 30
+Grid sizes: {'coarse': (20, 12), 'medium': (48, 27), 'fine': (192, 108), 'micro': (384, 216)}
+Project root: C:\Users\chris\Desktop\UACC
+
+────────────────────────────────────────────────────────────
+  3. SESSION STATE
+────────────────────────────────────────────────────────────
+Singleton works: True
+Action log count: 1
+Element cache size: 3
+Find "ok": 1 match(es)
+Find "search": 1 match(es)
+Find type="button": 1 match(es)
+format_error: Test context — Error: ValueError: bad value
+
+────────────────────────────────────────────────────────────
+  4. IMAGE ENCODING
+────────────────────────────────────────────────────────────
+PNG base64 length: 252
+JPEG base64 length: 988
+Media types: PNG=image/png JPEG=image/jpeg
+
+────────────────────────────────────────────────────────────
+  5. SCREEN CAPTURE
+────────────────────────────────────────────────────────────
+
+▶ get_screen_size()
+  ✓ OK: (1920, 1080)
+
+▶ capture_full()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=1920x1080 at 0x1F1F2EC4B00>
+
+────────────────────────────────────────────────────────────
+  6. ACTION SCHEMA
+────────────────────────────────────────────────────────────
+Click: x=500 y=300 btn=left
+Type: text="hello" delay=50
+Hotkey: [ctrl, s]
+Scroll: (400,300) dir=down amt=3
+Drag: (100,100)->(300,300) btn=left
+Hover: (200,150) dur=1000
+
+────────────────────────────────────────────────────────────
+  7. ACTION EXECUTOR
+────────────────────────────────────────────────────────────
+Executor: mimicry=True safe=True
+Execute click: {"success": true, "message": "Clicked at (500, 300)", "action": "click"}
+
+────────────────────────────────────────────────────────────
+  8. WINDOW MANAGER
+────────────────────────────────────────────────────────────
+
+▶ get_active_window()
+  ✓ OK: None
+
+▶ list_windows()
+  ✓ OK: []
+
+────────────────────────────────────────────────────────────
+  9. ACCESSIBILITY
+────────────────────────────────────────────────────────────
+
+▶ get_ui_tree()
+  ✓ OK: [UIElement(id='e1', control_type='Dialog', name='Hermes', bounds=(-9, -9, 1929, 1029), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[UIElement(id='e2', control_type='Pane', name='', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[]), UIElement(id='e3', control_type='Pane', name='Hermes', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, edi
+Top element: Dialog "Hermes"
+
+────────────────────────────────────────────────────────────
+  10. CLIPBOARD
+────────────────────────────────────────────────────────────
+
+▶ write_clipboard("UACC test text")
+  ✓ OK: {'success': True, 'message': 'Wrote 14 characters to clipboard', 'length': 14}
+
+▶ read_clipboard()
+  ✓ OK: {'success': True, 'text': 'UACC test text', 'length': 14, 'message': 'Read 14 characters from clipboard'}
+
+────────────────────────────────────────────────────────────
+  11. TEXT MAP
+────────────────────────────────────────────────────────────
+
+▶ build_text_map()
+  ✓ OK: TextMap(screen_width=1920, screen_height=1080, active_window='UACC Test', regions=[ScreenRegion(name='top_bar', bounds=(0, 0, 1920, 64), elements=[ScreenElement(id='e6', element_type='pane', text='', bounds=(1749, 0, 1921, 43), center=(1835, 21), clickable=False, editable=False, expandable=False, expanded=False, value='', source='accessibility'), ScreenElement(id='e7', element_type='button', text='Minimize', bounds=(1749, 0, 1806, 43), center=(1777, 21), clickable=True, editable=False, expandabl
+TextMap: 15 elements
+Compact: Screen: 1920x1080 | Window: "UACC Test"
+─── Interactive Elements ───
+  [e7] button         "Minimize"                        at (1777, 21)      clickable
+  [e8] button         "Restore"                         at (1834, 21)      clickable
+  [e9] button         "Close"                           at (1
+
+────────────────────────────────────────────────────────────
+  12. HUMAN MIMICRY
+────────────────────────────────────────────────────────────
+Functions: move_mouse_human, type_human, drag_human
+
+────────────────────────────────────────────────────────────
+  13. MCP SERVER TOOLS
+────────────────────────────────────────────────────────────
+Total MCP tools: 25
+  screenshot
+  get_screen_info
+  click
+  type_text
+  hotkey
+  scroll
+  drag
+  hover
+  find_element
+  get_active_window
+  list_windows
+  focus_window
+  resize_window
+  move_window
+  minimize_maximize
+  launch_app
+  open_url
+  clipboard_read
+  clipboard_write
+  get_mouse_position
+  wait_for_element
+  click_element
+  get_action_history
+  paint_preset
+  paint_image
+
+────────────────────────────────────────────────────────────
+  14. SCREEN DIFF
+────────────────────────────────────────────────────────────
+
+▶ has_changed(same)
+  ✓ OK: False
+
+▶ has_changed(different)
+  ✓ OK: True
+
+▶ compute_diff()
+  ✓ OK: DiffResult(changed=True, changed_percentage=100.0, regions=[ChangedRegion(bounds=(0, 0, 100, 50), pixel_count=5000, change_intensity=170.0)], total_pixels_changed=5000)
+
+────────────────────────────────────────────────────────────
+  15. GRID ENCODER
+────────────────────────────────────────────────────────────
+
+▶ overlay_grid(mode="coarse")
+  ✓ OK: <PIL.Image.Image image mode=RGBA size=800x600 at 0x1F1FFA74260>
+
+▶ grid_cell_to_pixel(5,3,1920,1080)
+  ✓ OK: (220, 140)
+
+▶ zoom_region()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=800x600 at 0x1F1F2691A90>
+
+────────────────────────────────────────────────────────────
+  16. ELEMENT FINDER
+────────────────────────────────────────────────────────────
+
+▶ get_mouse_position()
+  ✓ OK: {'success': True, 'x': 500, 'y': 300, 'message': 'Mouse at (500, 300)'}
+
+▶ find_elements_smart(name="Hermes")
+  ✓ OK: [ElementMatch(element_id='e1', name='Hermes', element_type='dialog', center=(960, 510), bounds=(-9, -9, 1929, 1029), confidence=1.0, clickable=False, editable=False, expandable=False), ElementMatch(element_id='e3', name='Hermes', element_type='pane', center=(960, 510), bounds=(0, 0, 1920, 1020), confidence=1.0, clickable=False, editable=False, expandable=False), ElementMatch(element_id='e14', name='Hermes', element_type='text_area', center=(960, 510), bounds=(0, 0, 1920, 1020), confidence=1.0, c
+
+────────────────────────────────────────────────────────────
+  17. WEB SERVER
+────────────────────────────────────────────────────────────
+
+▶ uacc.web.server
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+────────────────────────────────────────────────────────────
+  18. MCP RESOURCES
+────────────────────────────────────────────────────────────
+
+▶ uacc://config resource
+  ✓ OK: {
+  "mode": "hybrid",
+  "grid_mode": "medium",
+  "safe_mode": true,
+  "max_iterations": 30,
+  "human_mimicry": true,
+  "action_delay_ms": 150,
+  "screenshot_quality": 80
+}
+
+▶ uacc://history/actions resource
+  ✓ OK: {
+  "actions": [
+    {
+      "tool": "test_tool",
+      "params": {
+        "p": 1
+      },
+      "result": {
+        "s": true
+      },
+      "timestamp": 1784305515.127821
+    }
+  ],
+  "count": 1
+}
+
+▶ uacc://system/monitors resource
+  ✓ OK: {
+  "monitors": [
+    {
+      "index": 0,
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 1080,
+      "is_primary": false,
+      "is_virtual": true
+    },
+    {
+      "index": 1,
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 1080,
+      "is_primary": true,
+      "is_virtual": false
+    }
+  ],
+  "count": 1
+}
+
+▶ uacc://screen/active-window resource
+  ✓ OK: {"error": "Could not determine active window"}
+
+────────────────────────────────────────────────────────────
+  19. MCP PROMPTS
+────────────────────────────────────────────────────────────
+
+▶ computer_control_guide prompt
+  ✓ OK: # UACC — Computer Control Best Practices
+
+## Recommended Workflow
+
+1. **Understand context first**
+   - Call `get_active_window` to see what app is focused
+   - Call `get_screen_info` to see all interactive elements
+   - Call `list_windows` if you need to switch between apps
+
+2. **Use smart targeting over raw coordinates**
+   - Prefer `click_element(name="Save")` over `click(x=500, y=300)`
+   - Use `find_element(name="Submit", element_type="button")` to locate elements
+   - Smart targeting uses 
+Guide length: 2725 chars
+
+────────────────────────────────────────────────────────────
+  20. MODEL ADAPTERS
+────────────────────────────────────────────────────────────
+BaseAdapter works, type=TestModel
+Adapter act result: [('done', '')]
+
+────────────────────────────────────────────────────────────
+  21. AGENT MEMORY
+────────────────────────────────────────────────────────────
+
+▶ SessionMemory add_entry
+  ✗ FAIL: AttributeError: 'SessionMemory' object has no attribute 'add_entry'
+    Traceback: Traceback (most recent call last):
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 34, in try_it
+    result = fn()
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 256, in <lambda>
+    try_it('SessionMemory add_entry', lambda: store.add_entry(key='test', value='test_val'))
+                                              ^^^^^^^^^^^^^^^
+AttributeError: 'SessionMemory' object has no attribute 'add_entry'
+
+
+▶ SessionMemory get_entry
+  ✗ FAIL: AttributeError: 'SessionMemory' object has no attribute 'get_entry'
+    Traceback: Traceback (most recent call last):
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 34, in try_it
+    result = fn()
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 257, in <lambda>
+    try_it('SessionMemory get_entry', lambda: store.get_entry('test'))
+                                              ^^^^^^^^^^^^^^^
+AttributeError: 'SessionMemory' object has no attribute 'get_entry'
+
+
+▶ SessionMemory search
+  ✗ FAIL: AttributeError: 'SessionMemory' object has no attribute 'search'
+    Traceback: Traceback (most recent call last):
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 34, in try_it
+    result = fn()
+  File "C:\Users\chris\Desktop\UACC\uacc_mcp_test_runner.py", line 258, in <lambda>
+    try_it('SessionMemory search', lambda: store.search('test'))
+                                           ^^^^^^^^^^^^
+AttributeError: 'SessionMemory' object has no attribute 'search'
+
+
+────────────────────────────────────────────────────────────
+  22. MCP STDIO SERVER (brief)
+────────────────────────────────────────────────────────────
+Init response received: 0 bytes
+  Preview: b''
+MCP run test: OSError: [Errno 22] Invalid argument
+
+────────────────────────────────────────────────────────────
+  ✓ ALL 22 SECTIONS COMPLETE
+────────────────────────────────────────────────────────────
+Log file: C:\Users\chris\Desktop\UACC\uacc_mcp_usage_log.txt
+
+────────────────────────────────────────────────────────────
+  0. PYTHON & ENVIRONMENT
+────────────────────────────────────────────────────────────
+Python: 3.13.13 (main, May 10 2026, 19:31:06) [MSC v.1944 64 bit (AMD64)]
+Platform: win32
+Executable: C:\Users\chris\Desktop\UACC\.venv\Scripts\python.exe
+Prefix: C:\Users\chris\Desktop\UACC\.venv
+Sys.path (first 5): ['C:\\Users\\chris\\Desktop\\UACC', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python313.zip', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\DLLs', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\Lib', 'C:\\Users\\chris\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none']
+
+────────────────────────────────────────────────────────────
+  1. MCP SERVER & CORE MODULE IMPORTS
+────────────────────────────────────────────────────────────
+
+▶ uacc_mcp.server
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc_mcp.utils
+  ✓ OK: <module 'uacc_mcp' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc_mcp\\__init__.py'>
+
+▶ uacc.config
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_capture
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.text_map
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.window_manager
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.accessibility
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.clipboard
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.element_finder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.grid_encoder
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.ocr_engine
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.core.screen_diff
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.executor
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.schema
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.artistic_painter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.actions.human_mimicry
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.models.base_adapter
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+▶ uacc.agent.memory
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+uacc_mcp version: 0.1.0
+
+────────────────────────────────────────────────────────────
+  2. CONFIG
+────────────────────────────────────────────────────────────
+Mode: hybrid
+Grid mode: medium
+Safe mode: True
+Human mimicry: True
+Action delay ms: 150
+Max iterations: 30
+Grid sizes: {'coarse': (20, 12), 'medium': (48, 27), 'fine': (192, 108), 'micro': (384, 216)}
+Project root: C:\Users\chris\Desktop\UACC
+
+────────────────────────────────────────────────────────────
+  3. SESSION STATE
+────────────────────────────────────────────────────────────
+Singleton works: True
+Action log count: 1
+Element cache size: 3
+Find "ok": 1 match(es)
+Find "search": 1 match(es)
+Find type="button": 1 match(es)
+format_error: Test context — Error: ValueError: bad value
+
+────────────────────────────────────────────────────────────
+  4. IMAGE ENCODING
+────────────────────────────────────────────────────────────
+PNG base64 length: 252
+JPEG base64 length: 988
+Media types: PNG=image/png JPEG=image/jpeg
+
+────────────────────────────────────────────────────────────
+  5. SCREEN CAPTURE
+────────────────────────────────────────────────────────────
+
+▶ get_screen_size()
+  ✓ OK: (1920, 1080)
+
+▶ capture_full()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=1920x1080 at 0x24AF9FF4B00>
+
+────────────────────────────────────────────────────────────
+  6. ACTION SCHEMA
+────────────────────────────────────────────────────────────
+Click: x=500 y=300 btn=left
+Type: text="hello" delay=50
+Hotkey: [ctrl, s]
+Scroll: (400,300) dir=down amt=3
+Drag: (100,100)->(300,300) btn=left
+Hover: (200,150) dur=1000
+
+────────────────────────────────────────────────────────────
+  7. ACTION EXECUTOR
+────────────────────────────────────────────────────────────
+Executor: mimicry=True safe=True
+Execute click: {"success": true, "message": "Clicked at (500, 300)", "action": "click"}
+
+────────────────────────────────────────────────────────────
+  8. WINDOW MANAGER
+────────────────────────────────────────────────────────────
+
+▶ get_active_window()
+  ✓ OK: None
+
+▶ list_windows()
+  ✓ OK: []
+
+────────────────────────────────────────────────────────────
+  9. ACCESSIBILITY
+────────────────────────────────────────────────────────────
+
+▶ get_ui_tree()
+  ✓ OK: [UIElement(id='e1', control_type='Dialog', name='Hermes', bounds=(-9, -9, 1929, 1029), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[UIElement(id='e2', control_type='Pane', name='', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, editable=False, expandable=False, expanded=False, value='', children=[]), UIElement(id='e3', control_type='Pane', name='Hermes', bounds=(0, 0, 1920, 1020), center=(960, 510), clickable=False, edi
+Top element: Dialog "Hermes"
+
+────────────────────────────────────────────────────────────
+  10. CLIPBOARD
+────────────────────────────────────────────────────────────
+
+▶ write_clipboard("UACC test text")
+  ✓ OK: {'success': True, 'message': 'Wrote 14 characters to clipboard', 'length': 14}
+
+▶ read_clipboard()
+  ✓ OK: {'success': True, 'text': 'UACC test text', 'length': 14, 'message': 'Read 14 characters from clipboard'}
+
+────────────────────────────────────────────────────────────
+  11. TEXT MAP
+────────────────────────────────────────────────────────────
+
+▶ build_text_map()
+  ✓ OK: TextMap(screen_width=1920, screen_height=1080, active_window='UACC Test', regions=[ScreenRegion(name='top_bar', bounds=(0, 0, 1920, 64), elements=[ScreenElement(id='e6', element_type='pane', text='', bounds=(1749, 0, 1921, 43), center=(1835, 21), clickable=False, editable=False, expandable=False, expanded=False, value='', source='accessibility'), ScreenElement(id='e7', element_type='button', text='Minimize', bounds=(1749, 0, 1806, 43), center=(1777, 21), clickable=True, editable=False, expandabl
+TextMap: 15 elements
+Compact: Screen: 1920x1080 | Window: "UACC Test"
+─── Interactive Elements ───
+  [e7] button         "Minimize"                        at (1777, 21)      clickable
+  [e8] button         "Restore"                         at (1834, 21)      clickable
+  [e9] button         "Close"                           at (1
+
+────────────────────────────────────────────────────────────
+  12. HUMAN MIMICRY
+────────────────────────────────────────────────────────────
+Functions: move_mouse_human, type_human, drag_human
+
+────────────────────────────────────────────────────────────
+  13. MCP SERVER TOOLS
+────────────────────────────────────────────────────────────
+Total MCP tools: 25
+  screenshot
+  get_screen_info
+  click
+  type_text
+  hotkey
+  scroll
+  drag
+  hover
+  find_element
+  get_active_window
+  list_windows
+  focus_window
+  resize_window
+  move_window
+  minimize_maximize
+  launch_app
+  open_url
+  clipboard_read
+  clipboard_write
+  get_mouse_position
+  wait_for_element
+  click_element
+  get_action_history
+  paint_preset
+  paint_image
+
+────────────────────────────────────────────────────────────
+  14. SCREEN DIFF
+────────────────────────────────────────────────────────────
+
+▶ has_changed(same)
+  ✓ OK: False
+
+▶ has_changed(different)
+  ✓ OK: True
+
+▶ compute_diff()
+  ✓ OK: DiffResult(changed=True, changed_percentage=100.0, regions=[ChangedRegion(bounds=(0, 0, 100, 50), pixel_count=5000, change_intensity=170.0)], total_pixels_changed=5000)
+
+────────────────────────────────────────────────────────────
+  15. GRID ENCODER
+────────────────────────────────────────────────────────────
+
+▶ overlay_grid(mode="coarse")
+  ✓ OK: <PIL.Image.Image image mode=RGBA size=800x600 at 0x24AFFC14260>
+
+▶ grid_cell_to_pixel(5,3,1920,1080)
+  ✓ OK: (220, 140)
+
+▶ zoom_region()
+  ✓ OK: <PIL.Image.Image image mode=RGB size=800x600 at 0x24AF98719F0>
+
+────────────────────────────────────────────────────────────
+  16. ELEMENT FINDER
+────────────────────────────────────────────────────────────
+
+▶ get_mouse_position()
+  ✓ OK: {'success': True, 'x': 500, 'y': 300, 'message': 'Mouse at (500, 300)'}
+
+▶ find_elements_smart(name="Hermes")
+  ✓ OK: [ElementMatch(element_id='e1', name='Hermes', element_type='dialog', center=(960, 510), bounds=(-9, -9, 1929, 1029), confidence=1.0, clickable=False, editable=False, expandable=False), ElementMatch(element_id='e3', name='Hermes', element_type='pane', center=(960, 510), bounds=(0, 0, 1920, 1020), confidence=1.0, clickable=False, editable=False, expandable=False), ElementMatch(element_id='e14', name='Hermes', element_type='text_area', center=(960, 510), bounds=(0, 0, 1920, 1020), confidence=1.0, c
+
+────────────────────────────────────────────────────────────
+  17. WEB SERVER
+────────────────────────────────────────────────────────────
+
+▶ uacc.web.server
+  ✓ OK: <module 'uacc' from 'C:\\Users\\chris\\Desktop\\UACC\\uacc\\__init__.py'>
+
+────────────────────────────────────────────────────────────
+  18. MCP RESOURCES
+────────────────────────────────────────────────────────────
+
+▶ uacc://config resource
+  ✓ OK: {
+  "mode": "hybrid",
+  "grid_mode": "medium",
+  "safe_mode": true,
+  "max_iterations": 30,
+  "human_mimicry": true,
+  "action_delay_ms": 150,
+  "screenshot_quality": 80
+}
+
+▶ uacc://history/actions resource
+  ✓ OK: {
+  "actions": [
+    {
+      "tool": "test_tool",
+      "params": {
+        "p": 1
+      },
+      "result": {
+        "s": true
+      },
+      "timestamp": 1784305592.5358398
+    }
+  ],
+  "count": 1
+}
+
+▶ uacc://system/monitors resource
+  ✓ OK: {
+  "monitors": [
+    {
+      "index": 0,
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 1080,
+      "is_primary": false,
+      "is_virtual": true
+    },
+    {
+      "index": 1,
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 1080,
+      "is_primary": true,
+      "is_virtual": false
+    }
+  ],
+  "count": 1
+}
+
+▶ uacc://screen/active-window resource
+  ✓ OK: {"error": "Could not determine active window"}
+
+────────────────────────────────────────────────────────────
+  19. MCP PROMPTS
+────────────────────────────────────────────────────────────
+
+▶ computer_control_guide prompt
+  ✓ OK: # UACC — Computer Control Best Practices
+
+## Recommended Workflow
+
+1. **Understand context first**
+   - Call `get_active_window` to see what app is focused
+   - Call `get_screen_info` to see all interactive elements
+   - Call `list_windows` if you need to switch between apps
+
+2. **Use smart targeting over raw coordinates**
+   - Prefer `click_element(name="Save")` over `click(x=500, y=300)`
+   - Use `find_element(name="Submit", element_type="button")` to locate elements
+   - Smart targeting uses 
+Guide length: 2725 chars
+
+────────────────────────────────────────────────────────────
+  20. MODEL ADAPTERS
+────────────────────────────────────────────────────────────
+BaseAdapter works, type=TestModel
+Adapter act result: [('done', '')]
+
+────────────────────────────────────────────────────────────
+  21. AGENT MEMORY
+────────────────────────────────────────────────────────────
+History count: 1
+Screens visited: 1
+Shortcuts learned: 1
+Summary: {"elapsed_seconds": 0.0, "total_actions": 1, "screens_visited": 1, "cached_elements": 0, "learned_shortcuts": 1, "success_rate": 1.0}
+Last result: {'action': 'test', 'x': 100, 'y': 200, 'success': True, 'timestamp': 1784305610.9315622, 'turn': 1}
+Find by name: None
+
+────────────────────────────────────────────────────────────
+  22. MCP STDIO SERVER (brief)
+────────────────────────────────────────────────────────────
+MCP server app name: uacc-mcp
+MCP server tool count: 25
+anyio available
+MCP server module fully operational
+
+────────────────────────────────────────────────────────────
+  ✓ ALL 22 SECTIONS COMPLETE
+────────────────────────────────────────────────────────────
+Log file: C:\Users\chris\Desktop\UACC\uacc_mcp_usage_log.txt
+
+
+======================================================================
+AGGRESSIVE REAL-WORLD TEST — APPENDED 2026-07-17 22:11:44
+======================================================================
+
+[22:10:21] ═════════════════════════════════════════════════════════════════
+[22:10:21] UACC AGGRESSIVE REAL-WORLD TEST — 2026-07-17 22:10:21
+[22:10:21] ═════════════════════════════════════════════════════════════════
+[22:10:21] 
+[22:10:21] ── PHASE 1: DESKTOP CAPTURE ──
+[22:10:21] ▶ get_screen_size
+[22:10:21]   ✓ (0.1s)
+[22:10:21] ▶ capture_full() — before
+[22:10:21]   ✓ (0.1s)
+[22:10:21]   └─ Saved: C:\Users\chris\Desktop\uacc_evidence\01_before.png (1920×1080, 192703 bytes)
+[22:10:21] ▶ get_mouse_position (before)
+[22:10:21]   ✓ (0.1s)
+[22:10:21] ▶ build_text_map() — empty tree fallback
+[22:10:21]   ✗ AttributeError: 'str' object has no attribute 'bounds'
+[22:10:21]   └─ ^^^^^^^^^^
+[22:10:21] ▶ capture_region(800,400,320,240)
+[22:10:21]   ✓ (0.0s)
+[22:10:21]   └─ Saved: C:\Users\chris\Desktop\uacc_evidence\02_center_region.png (320×240, 11042 bytes)
+[22:10:21] ▶ write_clipboard("UACC-REAL-TEST")
+[22:10:21]   ✓ (0.0s)
+[22:10:21] ▶ read_clipboard
+[22:10:21]   ✓ (0.0s)
+[22:10:21] 
+[22:10:21] ── PHASE 2: NOTEPAD ODYSSEY ──
+[22:10:21] ▶ launch_notepad()
+[22:10:23]   ✓ (1.5s)
+[22:10:23] ▶ capture_full() — notepad open
+[22:10:24]   ✓ (0.0s)
+[22:10:24]   └─ Saved: C:\Users\chris\Desktop\uacc_evidence\03_notepad_open.png (1920×1080, 188789 bytes)
+[22:10:24] ▶ executor.type_text() in Notepad
+[22:10:24]   ✗ TypeError: TypeAction.__init__() got an unexpected keyword argument 'delay'
+[22:10:24]   └─ ^
+[22:10:24] ▶ capture_full() — after typing
+[22:10:24]   ✓ (0.0s)
+[22:10:24]   └─ Saved: C:\Users\chris\Desktop\uacc_evidence\04_after_typing.png (1920×1080, 188789 bytes)
+[22:10:24] ▶ Ctrl+S hotkey
+[22:10:24]   ✓ (0.1s)
+[22:10:25] ▶ capture_full() — save dialog
+[22:10:25]   ✓ (0.1s)
+[22:10:25]   └─ Saved: C:\Users\chris\Desktop\uacc_evidence\05_save_dialog.png (1920×1080, 188649 bytes)
+[22:10:25] ▶ type save filename
+[22:10:25]   ✗ TypeError: TypeAction.__init__() got an unexpected keyword argument 'delay'
+[22:10:25]   └─ ^
+[22:10:25] ▶ Enter to save
+[22:10:25]   ✓ (0.1s)
+[22:10:27] ▶ capture_full() — after save
+[22:10:27]   ✓ (0.0s)
+[22:10:27]   └─ Saved: C:\Users\chris\Desktop\uacc_evidence\06_after_save.png (1920×1080, 173867 bytes)
+[22:10:27] ▶ Alt+F4 close
+[22:10:27]   ✓ (0.1s)
+[22:10:28] ▶ Tab then Enter (dismiss dialog)
+[22:10:29]   ✓ (0.3s)
+[22:10:30] ▶ capture_full() — after notepad closed
+[22:10:30]   ✓ (0.1s)
+[22:10:30]   └─ Saved: C:\Users\chris\Desktop\uacc_evidence\07_after_close.png (1920×1080, 294474 bytes)
+[22:10:30] 
+[22:10:30] ── PHASE 3: VISUAL ANALYSIS ──
+[22:10:30] ▶ has_changed(before vs after)
+[22:10:31]   ✓ (0.1s)
+[22:10:31] ▶ compute_diff(before vs after)
+[22:10:32]   ✓ (1.1s)
+[22:10:32]   └─ Changed: True, 41.6%, 863236 pixels
+[22:10:32] ▶ overlay_grid(full_b, medium)
+[22:10:32]   ✓ (0.2s)
+[22:10:32]   └─ Saved: C:\Users\chris\Desktop\uacc_evidence\10_grid_overlay.png (1920×1080, 586687 bytes)
+[22:10:32] ▶ zoom_region(full_b, 960, 540)
+[22:10:32]   ✓ (0.0s)
+[22:10:32]   └─ Saved: C:\Users\chris\Desktop\uacc_evidence\11_center_zoom.png (800×600, 2788 bytes)
+[22:10:32] ▶ grid_cell_to_pixel(col=0, row=0, 1920,1080)
+[22:10:32]   ✓ (0.0s)
+[22:10:32]   └─ Cell (0,0) → pixel (20, 20)
+[22:10:32] ▶ grid_cell_to_pixel(col=5, row=3, 1920,1080)
+[22:10:32]   ✓ (0.0s)
+[22:10:32]   └─ Cell (5,3) → pixel (220, 140)
+[22:10:32] ▶ grid_cell_to_pixel(col=20, row=15, 1920,1080)
+[22:10:32]   ✓ (0.0s)
+[22:10:32]   └─ Cell (20,15) → pixel (820, 620)
+[22:10:32] ▶ grid_cell_to_pixel(col=47, row=26, 1920,1080)
+[22:10:32]   ✓ (0.0s)
+[22:10:32]   └─ Cell (47,26) → pixel (1900, 1060)
+[22:10:32] ▶ has_changed(same image)
+[22:10:32]   ✓ (0.1s)
+[22:10:32] 
+[22:10:32] ── PHASE 4: MODEL ADAPTER ──
+[22:10:32] ▶ observe_and_act()
+[22:10:32]   ✓ (0.0s)
+[22:10:32]   └─ action=click x=960 y=540 reason="Test click"
+[22:10:32] 
+[22:10:32] ── PHASE 5: EXECUTOR EDGE CASES ──
+[22:10:32] ▶ executor.drag()
+[22:10:32]   ✗ TypeError: DragAction.__init__() got an unexpected keyword argument 'duration'. Did you mean 'duration_ms'?
+[22:10:32]   └─ ^
+[22:10:32] ▶ executor.click()
+[22:10:33]   ✓ (0.4s)
+[22:10:33] ▶ executor.scroll()
+[22:10:33]   ✓ (0.1s)
+[22:10:33] 
+[22:10:33] ── PHASE 6: SESSION MEMORY ──
+[22:10:33] Session summary: {
+  "elapsed_seconds": 0.0,
+  "total_actions": 4,
+  "screens_visited": 0,
+  "cached_elements": 0,
+  "learned_shortcuts": 2,
+  "success_rate": 1.0
+}
+[22:10:33] Actions logged: 4
+[22:10:33]   [1] capture_full: success=True
+[22:10:33]   [2] type_text: success=True
+[22:10:33]   [3] save_file: success=True
+[22:10:33]   [4] close_notepad: success=True
+[22:10:33] Shortcuts:
+[22:10:33]   Save file: ['ctrl', 's'] (confidence=0.95)
+[22:10:33]   Close window: ['alt', 'f4'] (confidence=0.9)
+[22:10:33] 
+[22:10:33] ── FINAL VERIFICATION ──

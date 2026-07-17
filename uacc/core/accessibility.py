@@ -14,6 +14,16 @@ from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+# Ensure pywin32 DLLs can be loaded (Python 3.8+ on Windows)
+try:
+    import os
+    import sys as _sys
+    _dll_dir = os.path.join(_sys.prefix, 'Lib', 'site-packages', 'pywin32_system32')
+    if os.path.isdir(_dll_dir):
+        os.add_dll_directory(_dll_dir)
+except Exception:
+    pass
+
 
 @dataclass
 class UIElement:

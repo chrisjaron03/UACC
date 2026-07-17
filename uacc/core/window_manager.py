@@ -16,6 +16,31 @@ from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+# Ensure pywin32 DLLs can be loaded (Python 3.8+ on Windows)
+try:
+    import os
+    _dll_dir = os.path.join(sys.prefix, 'Lib', 'site-packages', 'pywin32_system32')
+    if os.path.isdir(_dll_dir):
+        os.add_dll_directory(_dll_dir)
+except Exception:
+    pass
+
+
+def _is_zoomed(hwnd: int) -> bool:
+    """Check if a window is maximized, with fallback for missing IsZoomed."""
+    try:
+        import win32gui
+        return bool(win32gui.IsZoomed(hwnd))
+    except AttributeError:
+        pass
+    try:
+        import win32gui
+        placement = win32gui.GetWindowPlacement(hwnd)
+        # placement[1] = showCmd: 3=SW_SHOWMAXIMIZED
+        return placement[1] == 3
+    except Exception:
+        return False
+
 
 @dataclass
 class WindowInfo:
@@ -137,7 +162,7 @@ def get_active_window() -> Optional[WindowInfo]:
         except Exception:
             pass
 
-        is_maximized = win32gui.IsZoomed(hwnd)
+        is_maximized = _is_zoomed(hwnd)
         is_minimized = win32gui.IsIconic(hwnd)
 
         return WindowInfo(
@@ -221,7 +246,7 @@ def list_windows(include_hidden: bool = False) -> List[WindowInfo]:
                     process_id=pid,
                     is_visible=win32gui.IsWindowVisible(hwnd),
                     is_focused=(hwnd == active_hwnd),
-                    is_maximized=bool(win32gui.IsZoomed(hwnd)),
+                    is_maximized=_is_zoomed(hwnd),
                     is_minimized=bool(win32gui.IsIconic(hwnd)),
                 ))
             except Exception:
@@ -344,7 +369,7 @@ def resize_window(title: str, width: int, height: int) -> Dict[str, Any]:
             return {"success": False, "message": f"No window found matching '{title}'"}
 
         # Restore if maximized
-        if win32gui.IsZoomed(target_hwnd):
+        if _is_zoomed(target_hwnd):
             win32gui.ShowWindow(target_hwnd, win32con.SW_RESTORE)
             time.sleep(0.1)
 
@@ -396,7 +421,7 @@ def move_window(title: str, x: int, y: int) -> Dict[str, Any]:
             return {"success": False, "message": f"No window found matching '{title}'"}
 
         # Restore if maximized
-        if win32gui.IsZoomed(target_hwnd):
+        if _is_zoomed(target_hwnd):
             win32gui.ShowWindow(target_hwnd, win32con.SW_RESTORE)
             time.sleep(0.1)
 

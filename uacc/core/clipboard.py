@@ -8,6 +8,7 @@ with fallback to pyperclip.
 from __future__ import annotations
 
 import logging
+import sys
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -61,6 +62,10 @@ def _read_clipboard_text() -> Optional[str]:
     """Read text from clipboard using native APIs."""
     # Try win32clipboard first (fastest, most reliable on Windows)
     try:
+        import os
+        dll_dir = os.path.join(sys.prefix, 'Lib', 'site-packages', 'pywin32_system32')
+        if os.path.isdir(dll_dir):
+            os.add_dll_directory(dll_dir)
         import win32clipboard
         win32clipboard.OpenClipboard()
         try:
@@ -126,6 +131,10 @@ def _write_clipboard_text(text: str) -> None:
     """Write text to clipboard using native APIs."""
     # Try win32clipboard first
     try:
+        import os
+        dll_dir = os.path.join(sys.prefix, 'Lib', 'site-packages', 'pywin32_system32')
+        if os.path.isdir(dll_dir):
+            os.add_dll_directory(dll_dir)
         import win32clipboard
         win32clipboard.OpenClipboard()
         try:
@@ -151,8 +160,13 @@ def _write_clipboard_text(text: str) -> None:
         encoded = text.encode("utf-16-le") + b"\x00\x00"
         handle = kernel32.GlobalAlloc(GMEM_MOVEABLE, len(encoded))
         ptr = kernel32.GlobalLock(handle)
-        ctypes.memmove(ptr, encoded, len(encoded))
-        kernel32.GlobalUnlock(handle)
+        if not ptr:
+            kernel32.GlobalFree(handle)
+            raise RuntimeError("GlobalLock returned NULL")
+        try:
+            ctypes.memmove(ptr, encoded, len(encoded))
+        finally:
+            kernel32.GlobalUnlock(handle)
 
         if user32.OpenClipboard(0):
             try:
