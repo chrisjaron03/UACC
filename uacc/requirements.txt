@@ -1,0 +1,11 @@
+mss>=9.0
+Pillow>=10.0
+numpy>=1.24
+pyautogui>=0.9.54
+pynput>=1.7
+pywinauto>=0.6.8
+easyocr>=1.7
+openai>=1.0
+pyyaml>=6.0
+python-dotenv>=1.0
+scikit-image>=0.21

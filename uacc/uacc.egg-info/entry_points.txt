@@ -1,0 +1,3 @@
+[console_scripts]
+uacc-mcp = uacc_mcp.server:main
+uacc-ui = uacc.web.server:main

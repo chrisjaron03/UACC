@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UACC — Standalone Agent Dashboard</title>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <!-- Headless desktop automation safety warning banner -->
+  <div class="warning-banner">
+    ⚠️ WARNING: ACTIVE AUTOMATION. DO NOT MOVE MOUSE OR TYPE WHILE AGENT IS RUNNING.
+  </div>
+
+  <header>
+    <div class="logo-container">
+      <span class="logo-icon">🖥️</span>
+      <div>
+        <h1>UACC Control Panel</h1>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Universal AI Computer Control Dashboard</p>
+      </div>
+    </div>
+    
+    <div class="status-badge">
+      <div id="statusIndicator" class="status-indicator"></div>
+      <span id="statusLabel">Idle</span>
+    </div>
+  </header>
+
+  <main class="dashboard-grid">
+
+    <!-- Column 1: Control Panel -->
+    <div class="panel glass">
+      <div class="panel-header">
+        <h2 class="panel-title">🤖 <span>Agent Control Hub</span></h2>
+      </div>
+      
+      <div class="panel-body">
+        <!-- Run task -->
+        <div class="form-group">
+          <label for="taskPrompt">COMMAND AGENT</label>
+          <textarea id="taskPrompt" rows="4" placeholder="Enter instructions (e.g. 'Open Calculator and multiply 42 by 7')"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="agentMode">LLM OBSERVATION MODE</label>
+          <select id="agentMode">
+            <option value="hybrid">Hybrid Mode (Text Map + Vision)</option>
+            <option value="vision">Vision Mode (Screenshots only)</option>
+            <option value="text">Text Mode (Accessibilty maps only)</option>
+          </select>
+        </div>
+
+        <div class="btn-container" style="margin-bottom: 25px;">
+          <button id="runBtn" class="btn-primary" onclick="runTask()">▶ Start Agent</button>
+          <button id="stopBtn" class="btn-danger" onclick="stopTask()" disabled>⏹ Abort</button>
+        </div>
+
+        <hr style="border-color: var(--panel-border); margin: 20px 0;">
+
+        <!-- Preset drawings -->
+        <div class="form-group">
+          <label>🎨 PRESET MASTERPIECES</label>
+          <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 10px;">Instruct UACC to open Paint and sketch vectors instantly.</p>
+          
+          <div class="presets-grid">
+            <div class="preset-card" onclick="triggerPreset('rose')">
+              <span>🌹</span> Rose Curve
+            </div>
+            <div class="preset-card" onclick="triggerPreset('galaxy')">
+              <span>🌀</span> Spiral Galaxy
+            </div>
+            <div class="preset-card" onclick="triggerPreset('mountains')">
+              <span>⛰️</span> Mountains
+            </div>
+            <div class="preset-card" onclick="triggerPreset('peacock')">
+              <span>🦚</span> Peacock
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Column 2: Live Viewport -->
+    <div class="panel screen-panel glass">
+      <div class="panel-header">
+        <h2 class="panel-title">📺 <span>Live Desktop Feed</span></h2>
+        <span style="font-size: 0.8rem; color: var(--text-secondary);">Coordinates scaled to primary monitor</span>
+      </div>
+
+      <div class="panel-body screen-container">
+        <!-- Base64 image payload gets loaded here -->
+        <img id="liveFeed" src="" alt="Desktop Screen Capture" class="screen-image">
+        
+        <div id="noFeedMessage" class="screen-overlay-message">
+          Loading screenshot stream...
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 3: Outputs and Logs Console -->
+    <div class="panel glass">
+      <div class="tabs-container">
+        <button id="tabLogs" class="tab-btn active" onclick="switchTab('logs')">LOGS</button>
+        <button id="tabJobs" class="tab-btn" onclick="switchTab('jobs')">💼 JOB FINDER</button>
+        <button id="tabResearch" class="tab-btn" onclick="switchTab('research')">🔬 RESEARCH LAB</button>
+        <button id="tabConfig" class="tab-btn" onclick="switchTab('config')">⚙️ CONFIG</button>
+      </div>
+
+      <div class="panel-body" style="padding: 0; background: var(--terminal-bg);">
+        
+        <!-- Logs Panel -->
+        <div id="panelLogs" class="tab-panel active">
+          <div id="logConsole" class="terminal">
+            <div class="terminal-line info">UACC Web UI Console initialized. Ready to execute commands...</div>
+          </div>
+        </div>
+
+        <!-- Job Finder Panel -->
+        <div id="panelJobs" class="tab-panel" style="padding: 20px; background: inherit; overflow-y: auto;">
+          <h3 style="font-size: 1rem; color: var(--accent-cyan); margin-bottom: 12px;">Search Jobs Automations</h3>
+          
+          <div class="form-group">
+            <label for="jobTitle">Job Title</label>
+            <input type="text" id="jobTitle" value="Python Developer">
+          </div>
+          <div class="form-group">
+            <label for="jobLoc">Location</label>
+            <input type="text" id="jobLoc" value="New York">
+          </div>
+          
+          <div class="toggle-group">
+            <span>Remote Postings Only</span>
+            <label class="switch">
+              <input type="checkbox" id="jobRemote" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <button class="btn-primary" style="width: 100%; margin-bottom: 20px;" onclick="runJobsFinder()">Search & Compile Postings</button>
+          
+          <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px; border-bottom: 1px solid var(--panel-border); padding-bottom: 6px;">SCRAPED LISTINGS</h4>
+          <div id="jobsList" class="jobs-list">
+            <p style="font-size: 0.8rem; color: var(--text-secondary); text-align: center;">No job listings fetched yet.</p>
+          </div>
+        </div>
+
+        <!-- Research Lab Panel -->
+        <div id="panelResearch" class="tab-panel" style="padding: 20px; background: inherit; overflow-y: auto;">
+          <h3 style="font-size: 1rem; color: var(--accent-cyan); margin-bottom: 12px;">Long-Form Web Researcher</h3>
+          
+          <div class="form-group">
+            <label for="researchTopic">Topic Query</label>
+            <input type="text" id="researchTopic" value="Universal Computer Use Protocols 2026">
+          </div>
+          
+          <div class="form-group">
+            <label for="researchDepth">Depth Level</label>
+            <input type="number" id="researchDepth" min="1" max="5" value="3">
+          </div>
+
+          <button class="btn-primary" style="width: 100%; margin-bottom: 20px;" onclick="runResearch()">Trigger Deep Research</button>
+          
+          <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px; border-bottom: 1px solid var(--panel-border); padding-bottom: 6px;">COMPILED RESEARCH PAPER</h4>
+          <div id="researchOutput" class="research-report" style="color: var(--text-primary); font-size: 0.85rem;">
+            No research reports compiled yet.
+          </div>
+        </div>
+
+        <!-- Config Panel -->
+        <div id="panelConfig" class="tab-panel" style="padding: 20px; background: inherit; overflow-y: auto;">
+          <h3 style="font-size: 1rem; color: var(--accent-cyan); margin-bottom: 15px;">Safety & Speeds HUD</h3>
+
+          <div class="toggle-group">
+            <div>
+              <span style="display:block; font-weight:600;">Safe Mode Gate</span>
+              <span style="font-size:0.75rem; color:var(--text-secondary);">Block destructive mouse clicks/shortcuts</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="cfgSafeMode" checked onchange="updateConfig()">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-group">
+            <div>
+              <span style="display:block; font-weight:600;">Human Mimicry Speed</span>
+              <span style="font-size:0.75rem; color:var(--text-secondary);">Move mouse using curved trajectories</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="cfgHumanMimicry" checked onchange="updateConfig()">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label for="cfgMaxIter">MAX ITERATIONS LIMIT</label>
+            <input type="number" id="cfgMaxIter" min="1" max="100" value="30" onchange="updateConfig()">
+          </div>
+
+          <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: 20px; border-top: 1px solid var(--panel-border); padding-top: 15px;">
+            Settings are applied instantly to the running agent engine. For customization options like custom models, edit the project's local <code>.env</code> file.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Client Scripting Logic -->
+  <script>
+    let isRunning = false;
+    let logLength = 0;
+
+    // Switch right side panel tabs
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+      
+      document.getElementById('tab' + tabId.charAt(0).toUpperCase() + tabId.slice(1)).classList.add('active');
+      document.getElementById('panel' + tabId.charAt(0).toUpperCase() + tabId.slice(1)).classList.add('active');
+    }
+
+    // Call run API
+    async function runTask() {
+      const prompt = document.getElementById('taskPrompt').value.trim();
+      const mode = document.getElementById('agentMode').value;
+      if (!prompt) return alert("Please enter a command prompt!");
+
+      document.getElementById('runBtn').disabled = true;
+      document.getElementById('stopBtn').disabled = false;
+
+      const res = await fetch('/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task: prompt, mode: mode })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.message);
+        document.getElementById('runBtn').disabled = false;
+        document.getElementById('stopBtn').disabled = true;
+      }
+    }
+
+    // Call stop API
+    async function stopTask() {
+      const res = await fetch('/api/stop', { method: 'POST' });
+      const data = await res.json();
+      alert(data.message);
+    }
+
+    // Trigger vector preset
+    async function triggerPreset(presetName) {
+      const res = await fetch('/api/preset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preset: presetName })
+      });
+      const data = await res.json();
+      alert(data.message);
+    }
+
+    // Jobs Search API
+    async function runJobsFinder() {
+      const title = document.getElementById('jobTitle').value;
+      const location = document.getElementById('jobLoc').value;
+      const remote = document.getElementById('jobRemote').checked;
+
+      switchTab('logs'); // Switch to logs view to see output
+      const res = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title, location: location, remote: remote })
+      });
+      const data = await res.json();
+      alert(data.message);
+    }
+
+    // Research API
+    async function runResearch() {
+      const topic = document.getElementById('researchTopic').value;
+      const depth = document.getElementById('researchDepth').value;
+
+      switchTab('logs');
+      const res = await fetch('/api/research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: topic, depth: parseInt(depth) })
+      });
+      const data = await res.json();
+      alert(data.message);
+    }
+
+    // Config updating
+    async function updateConfig() {
+      const safeMode = document.getElementById('cfgSafeMode').checked;
+      const humanMimicry = document.getElementById('cfgHumanMimicry').checked;
+      const maxIter = document.getElementById('cfgMaxIter').value;
+
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          safe_mode: safeMode,
+          human_mimicry: humanMimicry,
+          max_iterations: parseInt(maxIter)
+        })
+      });
+    }
+
+    // Continuous Status Polling (every 1 second)
+    async function pollStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+
+        // 1. Update running status HUD
+        isRunning = data.running;
+        const ind = document.getElementById('statusIndicator');
+        const lbl = document.getElementById('statusLabel');
+        const runBtn = document.getElementById('runBtn');
+        const stopBtn = document.getElementById('stopBtn');
+
+        if (isRunning) {
+          ind.className = 'status-indicator running';
+          lbl.innerText = 'Executing Task...';
+          runBtn.disabled = true;
+          stopBtn.disabled = false;
+        } else {
+          ind.className = 'status-indicator';
+          lbl.innerText = 'Idle';
+          runBtn.disabled = false;
+          stopBtn.disabled = true;
+        }
+
+        // 2. Update Live Screen Feed
+        const feed = document.getElementById('liveFeed');
+        const feedMsg = document.getElementById('noFeedMessage');
+        if (data.screenshot) {
+          feed.src = 'data:image/jpeg;base64,' + data.screenshot;
+          feed.style.display = 'block';
+          feedMsg.style.display = 'none';
+        } else {
+          feed.style.display = 'none';
+          feedMsg.style.display = 'block';
+          feedMsg.innerText = 'Desktop feed currently unavailable.';
+        }
+
+        // 3. Update Log Console
+        const consoleEl = document.getElementById('logConsole');
+        if (data.logs && data.logs.length !== logLength) {
+          consoleEl.innerHTML = '';
+          data.logs.forEach(logLine => {
+            const lineDiv = document.createElement('div');
+            lineDiv.className = 'terminal-line';
+            if (logLine.includes('[UI]') || logLine.includes('SUCCESS')) {
+              lineDiv.classList.add('info');
+            } else if (logLine.includes('Error') || logLine.includes('FAILURE')) {
+              lineDiv.classList.add('error');
+            }
+            lineDiv.innerText = logLine;
+            consoleEl.appendChild(lineDiv);
+          });
+          logLength = data.logs.length;
+          consoleEl.scrollTop = consoleEl.scrollHeight; // Auto-scroll to bottom
+        }
+
+        // 4. Update Job Finder Tab
+        const jobsListEl = document.getElementById('jobsList');
+        if (data.jobs_list && data.jobs_list.length > 0) {
+          jobsListEl.innerHTML = '';
+          data.jobs_list.forEach(j => {
+            const item = document.createElement('div');
+            item.className = 'job-item';
+            item.innerHTML = `
+              <div class="job-item-header">
+                <span class="job-title">${j.title}</span>
+                <span class="job-score">${j.match_score}% match</span>
+              </div>
+              <div class="job-company">${j.company}</div>
+              <div class="job-loc">📍 ${j.location} | <a href="${j.link}" target="_blank" style="color: var(--accent-pink);">Apply Now</a></div>
+            `;
+            jobsListEl.appendChild(item);
+          });
+        }
+
+        // 5. Update Research Report Tab
+        const researchEl = document.getElementById('researchOutput');
+        if (data.research_report) {
+          researchEl.innerText = data.research_report;
+        }
+
+      } catch (err) {
+        console.error("Status polling failed:", err);
+      }
+    }
+
+    // Start polling loop
+    setInterval(pollStatus, 1000);
+    pollStatus();
+  </script>
+</body>
+</html>
