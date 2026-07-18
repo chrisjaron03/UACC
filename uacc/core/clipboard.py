@@ -129,6 +129,36 @@ def _read_clipboard_text() -> Optional[str]:
 
 def _write_clipboard_text(text: str) -> None:
     """Write text to clipboard using native APIs."""
+    import sys
+    import subprocess
+
+    if sys.platform == "darwin":
+        try:
+            subprocess.run(
+                ["pbcopy"],
+                input=text,
+                text=True,
+                timeout=5,
+                check=True,
+            )
+            return
+        except Exception as exc:
+            logger.debug("pbcopy clipboard write failed: %s", exc)
+
+    elif sys.platform.startswith("linux"):
+        for cmd in [["xclip", "-selection", "clipboard"], ["xsel", "-b", "-i"]]:
+            try:
+                subprocess.run(
+                    cmd,
+                    input=text,
+                    text=True,
+                    timeout=5,
+                    check=True,
+                )
+                return
+            except Exception:
+                pass
+
     # Try win32clipboard first
     try:
         import os

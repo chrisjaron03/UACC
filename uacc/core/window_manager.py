@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -141,6 +142,49 @@ def get_active_window() -> Optional[WindowInfo]:
     Returns:
         WindowInfo for the foreground window, or None if not available.
     """
+    if sys.platform != "win32":
+        try:
+            import pywinctl as pwc
+            win = pwc.getActiveWindow()
+            if not win:
+                return None
+            left, top, right, bottom = win.left, win.top, win.right, win.bottom
+            width, height = win.width, win.height
+            title = win.title or ""
+            pid = 0
+            process_name = ""
+            try:
+                pid = win.pid
+                if pid > 0:
+                    import psutil
+                    proc = psutil.Process(pid)
+                    process_name = proc.name()
+            except Exception:
+                pass
+            is_maximized = False
+            is_minimized = False
+            try:
+                is_maximized = win.isMaximized
+                is_minimized = win.isMinimized
+            except Exception:
+                pass
+            return WindowInfo(
+                title=title,
+                bounds=(left, top, right, bottom),
+                center=((left + right) // 2, (top + bottom) // 2),
+                width=width,
+                height=height,
+                process_name=process_name,
+                process_id=pid,
+                is_visible=True,
+                is_focused=True,
+                is_maximized=is_maximized,
+                is_minimized=is_minimized,
+            )
+        except Exception as exc:
+            logger.warning("Failed to get active window via pywinctl: %s", exc)
+            return None
+
     try:
         import win32gui
         hwnd = win32gui.GetForegroundWindow()
@@ -204,6 +248,58 @@ def list_windows(include_hidden: bool = False) -> List[WindowInfo]:
         List of WindowInfo objects for each window.
     """
     results: List[WindowInfo] = []
+
+    if sys.platform != "win32":
+        try:
+            import pywinctl as pwc
+            active_win = pwc.getActiveWindow()
+            active_title = active_win.title if active_win else ""
+            for win in pwc.getAllWindows():
+                try:
+                    if not include_hidden and not win.isVisible:
+                        continue
+                    title = win.title or ""
+                    if not title.strip():
+                        continue
+                    left, top, right, bottom = win.left, win.top, win.right, win.bottom
+                    width, height = win.width, win.height
+                    if width <= 0 or height <= 0:
+                        continue
+                    pid = 0
+                    process_name = ""
+                    try:
+                        pid = win.pid
+                        if pid > 0:
+                            import psutil
+                            proc = psutil.Process(pid)
+                            process_name = proc.name()
+                    except Exception:
+                        pass
+                    is_maximized = False
+                    is_minimized = False
+                    try:
+                        is_maximized = win.isMaximized
+                        is_minimized = win.isMinimized
+                    except Exception:
+                        pass
+                    results.append(WindowInfo(
+                        title=title.strip(),
+                        bounds=(left, top, right, bottom),
+                        center=((left + right) // 2, (top + bottom) // 2),
+                        width=width,
+                        height=height,
+                        process_name=process_name,
+                        process_id=pid,
+                        is_visible=True,
+                        is_focused=(title == active_title),
+                        is_maximized=is_maximized,
+                        is_minimized=is_minimized,
+                    ))
+                except Exception:
+                    pass
+        except Exception as exc:
+            logger.warning("Failed to list windows via pywinctl: %s", exc)
+        return results
 
     try:
         import win32gui
@@ -279,6 +375,28 @@ def focus_window(title: str) -> Dict[str, Any]:
     Returns:
         Result dict with success status and matched window info.
     """
+    if sys.platform != "win32":
+        try:
+            import pywinctl as pwc
+            for win in pwc.getAllWindows():
+                wt = win.title or ""
+                if title.lower() in wt.lower():
+                    try:
+                        if win.isMinimized:
+                            win.restore()
+                    except Exception:
+                        pass
+                    win.activate()
+                    time.sleep(0.2)
+                    return {
+                        "success": True,
+                        "message": f"Focused window: '{wt}'",
+                        "window_title": wt,
+                    }
+            return {"success": False, "message": f"No window found matching '{title}'"}
+        except Exception as exc:
+            return {"success": False, "message": f"Failed to focus window: {exc}"}
+
     try:
         import win32gui
         import win32con
@@ -347,6 +465,27 @@ def resize_window(title: str, width: int, height: int) -> Dict[str, Any]:
     Returns:
         Result dict with success status.
     """
+    if sys.platform != "win32":
+        try:
+            import pywinctl as pwc
+            for win in pwc.getAllWindows():
+                wt = win.title or ""
+                if title.lower() in wt.lower():
+                    try:
+                        if win.isMinimized:
+                            win.restore()
+                    except Exception:
+                        pass
+                    win.resizeTo(width, height)
+                    return {
+                        "success": True,
+                        "message": f"Resized window '{wt}' to {width}x{height}",
+                        "window_title": wt,
+                    }
+            return {"success": False, "message": f"No window found matching '{title}'"}
+        except Exception as exc:
+            return {"success": False, "message": f"Failed to resize window: {exc}"}
+
     try:
         import win32gui
         import win32con
@@ -399,6 +538,27 @@ def move_window(title: str, x: int, y: int) -> Dict[str, Any]:
     Returns:
         Result dict with success status.
     """
+    if sys.platform != "win32":
+        try:
+            import pywinctl as pwc
+            for win in pwc.getAllWindows():
+                wt = win.title or ""
+                if title.lower() in wt.lower():
+                    try:
+                        if win.isMinimized:
+                            win.restore()
+                    except Exception:
+                        pass
+                    win.moveTo(x, y)
+                    return {
+                        "success": True,
+                        "message": f"Moved window '{wt}' to ({x}, {y})",
+                        "window_title": wt,
+                    }
+            return {"success": False, "message": f"No window found matching '{title}'"}
+        except Exception as exc:
+            return {"success": False, "message": f"Failed to move window: {exc}"}
+
     try:
         import win32gui
         import win32con
@@ -454,6 +614,30 @@ def minimize_maximize_window(
     Returns:
         Result dict with success status.
     """
+    if sys.platform != "win32":
+        try:
+            import pywinctl as pwc
+            for win in pwc.getAllWindows():
+                wt = win.title or ""
+                if title.lower() in wt.lower():
+                    if action.lower() == "minimize":
+                        win.minimize()
+                    elif action.lower() == "maximize":
+                        win.maximize()
+                    elif action.lower() == "restore":
+                        win.restore()
+                    else:
+                        return {"success": False, "message": f"Unknown action: {action}. Use minimize/maximize/restore."}
+                    time.sleep(0.2)
+                    return {
+                        "success": True,
+                        "message": f"{action.capitalize()}d '{wt}'",
+                        "window_title": wt,
+                    }
+            return {"success": False, "message": f"No window found matching '{title}'"}
+        except Exception as exc:
+            return {"success": False, "message": f"Failed to {action} window: {exc}"}
+
     try:
         import win32gui
         import win32con
@@ -517,68 +701,125 @@ def launch_application(
     Returns:
         Result dict with success status and process info.
     """
-    # Common app name → executable mappings
-    APP_ALIASES = {
-        "notepad": "notepad.exe",
-        "calculator": "calc.exe",
-        "calc": "calc.exe",
-        "paint": "mspaint.exe",
-        "explorer": "explorer.exe",
-        "cmd": "cmd.exe",
-        "powershell": "powershell.exe",
-        "terminal": "wt.exe",
-        "chrome": "chrome.exe",
-        "firefox": "firefox.exe",
-        "edge": "msedge.exe",
-        "code": "code.exe",
-        "vscode": "code.exe",
-        "word": "winword.exe",
-        "excel": "excel.exe",
-        "outlook": "outlook.exe",
-        "teams": "teams.exe",
-        "slack": "slack.exe",
-        "spotify": "spotify.exe",
-        "discord": "discord.exe",
-    }
-
-    try:
-        # Resolve alias
-        executable = APP_ALIASES.get(name_or_path.lower(), name_or_path)
-
-        # Build command
-        cmd_parts = [executable]
-        if arguments:
-            cmd_parts.extend(arguments.split())
-
-        # Try direct execution first
-        try:
-            proc = subprocess.Popen(
-                cmd_parts,
-                shell=False,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except FileNotFoundError:
-            # Fallback: use 'start' command for apps not in PATH
-            proc = subprocess.Popen(
-                f'start "" "{executable}" {arguments}',
-                shell=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-
-        # Wait for window to appear
-        time.sleep(wait_ms / 1000)
-
-        return {
-            "success": True,
-            "message": f"Launched '{name_or_path}' (PID: {proc.pid})",
-            "process_id": proc.pid,
-            "executable": executable,
+    if sys.platform == "win32":
+        # Windows-specific app mappings
+        APP_ALIASES = {
+            "notepad": "notepad.exe",
+            "calculator": "calc.exe",
+            "calc": "calc.exe",
+            "paint": "mspaint.exe",
+            "explorer": "explorer.exe",
+            "cmd": "cmd.exe",
+            "powershell": "powershell.exe",
+            "terminal": "wt.exe",
+            "chrome": "chrome.exe",
+            "firefox": "firefox.exe",
+            "edge": "msedge.exe",
+            "code": "code.exe",
+            "vscode": "code.exe",
+            "word": "winword.exe",
+            "excel": "excel.exe",
+            "outlook": "outlook.exe",
+            "teams": "teams.exe",
+            "slack": "slack.exe",
+            "spotify": "spotify.exe",
+            "discord": "discord.exe",
         }
-
-    except Exception as exc:
-        return {"success": False, "message": f"Failed to launch '{name_or_path}': {exc}"}
+        try:
+            executable = APP_ALIASES.get(name_or_path.lower(), name_or_path)
+            cmd_parts = [executable]
+            if arguments:
+                cmd_parts.extend(arguments.split())
+            try:
+                proc = subprocess.Popen(
+                    cmd_parts,
+                    shell=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            except FileNotFoundError:
+                proc = subprocess.Popen(
+                    f'start "" "{executable}" {arguments}',
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            time.sleep(wait_ms / 1000)
+            return {
+                "success": True,
+                "message": f"Launched '{name_or_path}' (PID: {proc.pid})",
+                "process_id": proc.pid,
+                "executable": executable,
+            }
+        except Exception as exc:
+            return {"success": False, "message": f"Failed to launch '{name_or_path}': {exc}"}
+    else:
+        # macOS & Linux implementation
+        if sys.platform == "darwin":
+            APP_ALIASES = {
+                "notepad": "TextEdit",
+                "calculator": "Calculator",
+                "calc": "Calculator",
+                "terminal": "Terminal",
+                "chrome": "Google Chrome",
+                "safari": "Safari",
+                "vscode": "Visual Studio Code",
+                "code": "Visual Studio Code",
+            }
+        else:
+            APP_ALIASES = {
+                "notepad": "gedit",
+                "calculator": "gnome-calculator",
+                "calc": "gnome-calculator",
+                "terminal": "gnome-terminal",
+                "chrome": "google-chrome",
+                "firefox": "firefox",
+                "vscode": "code",
+                "code": "code",
+            }
+        try:
+            executable = APP_ALIASES.get(name_or_path.lower(), name_or_path)
+            if sys.platform == "darwin":
+                if "/" not in executable and not executable.endswith(".app"):
+                    cmd = ["open", "-a", executable]
+                    if arguments:
+                        cmd.extend(["--args"] + arguments.split())
+                else:
+                    cmd = ["open", executable]
+                    if arguments:
+                        cmd.extend(["--args"] + arguments.split())
+                proc = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            else:
+                # Linux
+                cmd_parts = [executable]
+                if arguments:
+                    cmd_parts.extend(arguments.split())
+                try:
+                    proc = subprocess.Popen(
+                        cmd_parts,
+                        shell=False,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                except FileNotFoundError:
+                    proc = subprocess.Popen(
+                        ["xdg-open", executable],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+            time.sleep(wait_ms / 1000)
+            return {
+                "success": True,
+                "message": f"Launched '{name_or_path}' (PID: {proc.pid})",
+                "process_id": proc.pid,
+                "executable": executable,
+            }
+        except Exception as exc:
+            return {"success": False, "message": f"Failed to launch '{name_or_path}': {exc}"}
 
 
 def open_url(url: str) -> Dict[str, Any]:
