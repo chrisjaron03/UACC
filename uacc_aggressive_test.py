@@ -8,6 +8,7 @@ model adapter, session memory, and element finder.
 Logs everything + saves evidence screenshots to desktop.
 """
 import sys, os, json, time, traceback
+sys.stdout.reconfigure(encoding='utf-8')
 sys.path = [p for p in sys.path if 'hermes' not in p.lower()]
 
 LOG = []
@@ -83,7 +84,7 @@ log('')
 log('── PHASE 2: NOTEPAD ODYSSEY ──')
 
 from uacc.actions.executor import ActionExecutor
-from uacc.actions.schema import ClickAction, TypeAction, HotkeyAction, DragAction, MouseButton, ScrollDirection
+from uacc.actions.schema import ClickAction, TypeAction, HotkeyAction, DragAction, MouseButton, ScrollDirection, ScrollAction
 
 executor = ActionExecutor(human_mimicry=True, safe_mode=True)
 
@@ -173,8 +174,9 @@ if full_a and full_b:
         log(f'  └─ Changed: {diff.changed}, {diff.changed_percentage:.1f}%, {diff.total_pixels_changed} pixels')
 
 # 3.2 Grid overlay
+from uacc.core.grid_encoder import grid_cell_to_pixel
 if full_b:
-    from uacc.core.grid_encoder import overlay_grid, overlay_markers, build_marker_legend, zoom_region, grid_cell_to_pixel
+    from uacc.core.grid_encoder import overlay_grid, overlay_markers, build_marker_legend, zoom_region
     grid = try_it('overlay_grid(full_b, medium)', lambda: overlay_grid(full_b, mode='medium'))
     if grid: save_img('10_grid_overlay.png', grid)
     zoom = try_it('zoom_region(full_b, 960, 540)', lambda: zoom_region(full_b, 960, 540, zoom_level=2))
@@ -231,10 +233,10 @@ try_it('executor.click()', lambda: executor.execute(ClickAction(
 )))
 
 # Scroll
-try_it('executor.scroll()', lambda: executor.execute(type('ScrollAction', (), {
-    'x': 500, 'y': 500, 'direction': 'down', 'amount': 3,
-    'reasoning': 'Test scroll'
-})()))
+try_it('executor.scroll()', lambda: executor.execute(ScrollAction(
+    x=500, y=500, direction=ScrollDirection.DOWN, amount=3,
+    reasoning='Test scroll'
+)))
 
 log('')
 # ═══════════════════════════════════════════
@@ -273,7 +275,7 @@ log('── FINAL VERIFICATION ──')
 
 # Write full log
 log_path = os.path.join(EVIDENCE, 'uacc_aggressive_test_log.txt')
-with open(log_path, 'w') as f:
+with open(log_path, 'w', encoding='utf-8') as f:
     f.write('\n'.join(LOG))
 log(f'Test log: {log_path} ({len(LOG)} lines)')
 
@@ -286,7 +288,7 @@ for fn in sorted(os.listdir(EVIDENCE)):
 
 # Check saved Notepad file
 if os.path.exists(save_path):
-    with open(save_path) as f:
+    with open(save_path, encoding='utf-8') as f:
         nt_content = f.read()
     log(f'\n✅ Notepad file saved: {save_path}')
     log(f'   Content ({len(nt_content)} chars):')

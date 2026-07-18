@@ -3,6 +3,7 @@ UACC MCP Test Runner — strips Hermes paths, runs comprehensive tests.
 Logs everything to uacc_mcp_usage_log.txt
 """
 import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 # CRITICAL: Strip Hermes venv paths so UACC .venv (Python 3.13) extensions are found first
 paths_to_remove = [
@@ -18,7 +19,7 @@ import io, json, os, time, traceback
 LOG_PATH = r'C:\Users\chris\Desktop\UACC\uacc_mcp_usage_log.txt'
 
 def log(msg):
-    with open(LOG_PATH, 'a') as f:
+    with open(LOG_PATH, 'a', encoding='utf-8') as f:
         f.write(str(msg) + '\n')
     print(msg)
 
