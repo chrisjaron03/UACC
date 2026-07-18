@@ -1536,6 +1536,62 @@ def run_workflow(name: str) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════
+#  PROMPTS
+# ═══════════════════════════════════════════════════════════════
+
+
+@mcp.prompt()
+def use_computer() -> str:
+    """Exposes structured guidelines on how to control the computer effectively using UACC tools."""
+    return (
+        "You are an AI assistant with access to the computer's screen and input devices through UACC (Universal AI Computer Control) MCP tools. "
+        "Follow these guidelines to perform tasks reliably and safely:\n\n"
+        "1. **Observe Before Acting**: Always call `get_screen_info` at the start of a task to get a structured text map of UI elements. "
+        "If you need visual confirmation of the layout, call `screenshot`.\n"
+        "2. **Coordinate Alignment**: Clicking requires exact coordinates. Rely on the coordinates returned by `get_screen_info` or `find_element`. "
+        "If the coordinates are slightly off, UACC's built-in boundary clamping and auto-correction will assist, but try to target the center of the elements.\n"
+        "3. **Focus Active Window**: Before typing or sending key combinations, ensure the target window is focused. Use `launch_application` to start/open applications, "
+        "or `focus_window` to bring a running window to the foreground.\n"
+        "4. **Keyboard Input**: For text inputs, click the input field first, then call `type_text`. For shortcuts, use the `hotkey` tool (e.g. `['ctrl', 's']` to save).\n"
+        "5. **Validation & Verification**: After performing an action, call `get_screen_info` or take a `screenshot` of the target region to verify the action succeeded.\n"
+        "6. **Safe Mode**: Be aware that safe mode is enabled. Destructive actions (like deleting system files or formatting drives) will be blocked. Avoid executing dangerous operations."
+    )
+
+
+@mcp.prompt()
+def troubleshoot_gui() -> str:
+    """Exposes guidelines for debugging and recovering from failed GUI automation steps."""
+    return (
+        "If a GUI interaction (clicking, typing, focusing, or launching) fails or does not yield the expected screen state, use this troubleshooting sequence:\n\n"
+        "1. **Check Window Focus**: Verify if the window is in the foreground. Call `list_windows` and check if the target window has `is_focused=True`. "
+        "If not, call `focus_window(title)` or `minimize_maximize_window(title, action='restore')` to restore it.\n"
+        "2. **Verify Coordinates**: If clicking on a coordinate did not trigger the expected behavior, the window may have resized or shifted. "
+        "Call `get_screen_info` to get the updated bounds of the target element.\n"
+        "3. **Detect Overlaps**: Another window might be covering the target element. Take a full `screenshot` to see if a popup, notification, "
+        "or background window is obstructing your view.\n"
+        "4. **Timing/Latency Issues**: Applications take time to load or respond. Introduce a small delay or retry the action. "
+        "Use `wait_for_element` to wait for a specific UI control to become visible before interacting with it.\n"
+        "5. **Clipboard Fallback**: If typing long strings of text fails or is too slow, write the text to the clipboard using `write_clipboard`, "
+        "click the input field, and trigger a paste hotkey (`['ctrl', 'v']` or `['command', 'v']`)."
+    )
+
+
+@mcp.prompt()
+def save_workflow() -> str:
+    """Exposes instructions on how to package and save multi-step GUI automation sequences as workflows."""
+    return (
+        "UACC supports saving multi-step automation flows as reusable workflows. This allows you and other agents to replay sequences "
+        "without needing to re-think or re-generate coordinates each time.\n\n"
+        "To build and save a workflow:\n"
+        "1. **Map the Steps**: Write down the sequence of tool calls needed (e.g. `launch_application`, `wait_for_element`, `click`, `type_text`).\n"
+        "2. **Standardize Inputs**: Use robust selectors (like `find_element` or relative coordinates) to define the actions.\n"
+        "3. **Call `create_workflow`**: Save the steps using `create_workflow`. Give it a clear, descriptive name (e.g. `search_github_issues`), "
+        "add a summary, and include tags like `['dev', 'browser']` to group it.\n"
+        "4. **Verify**: Test your workflow by calling `run_workflow` to ensure it replays successfully from start to finish."
+    )
+
+
+# ═══════════════════════════════════════════════════════════════
 #  ENTRY POINT
 # ═══════════════════════════════════════════════════════════════
 
