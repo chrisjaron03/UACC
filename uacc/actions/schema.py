@@ -242,22 +242,69 @@ def action_to_dict(action: Action) -> Dict[str, Any]:
 # ── Safety Check ─────────────────────────────────────────────
 
 _DESTRUCTIVE_PATTERNS = [
-    "delete",
-    "remove",
-    "format",
-    "erase",
-    "destroy",
-    "drop table",
+    # Command-level destructive patterns (high confidence)
     "rm -rf",
-    "shutdown",
-    "restart",
+    "rm -fr",
+    "rmdir /s",
+    "del /s /q",
+    "remove-item -recurse",
+    "format c:",
+    "format disk",
+    "drop table",
+    "truncate table",
+    "delete database",
+    "delete all",
+    "erase all",
+    "destroy all",
+    "shutdown /s",
+    "shutdown -s",
+    "restart /r",
+]
+
+# Compound phrases that indicate destructive intent (verb + target)
+# Used for reasoning analysis — catches "click the delete button" but NOT
+# "I'll select text to delete it later"
+_DESTRUCTIVE_COMPOUNDS = [
+    "delete button",
+    "delete file",
+    "delete folder",
+    "delete all",
+    "remove file",
+    "remove folder",
+    "format disk",
+    "format drive",
+    "drop table",
+    "erase disk",
+    "erase drive",
+    "destroy data",
+    "shutdown computer",
+    "restart computer",
 ]
 
 
 def is_potentially_destructive(action: Action) -> bool:
-    """Check if an action might be destructive (for safe mode confirmation)."""
-    reasoning = getattr(action, "reasoning", "").lower()
-    text = getattr(action, "text", "").lower()
-    combined = reasoning + " " + text
+    """Check if an action might be destructive (for safe mode confirmation).
 
-    return any(pattern in combined for pattern in _DESTRUCTIVE_PATTERNS)
+    Uses command-pattern matching for typed text and compound-phrase
+    matching for reasoning — avoids false positives on natural language
+    while still catching real destructive intent.
+    """
+    text = getattr(action, "text", "").lower()
+    reasoning = getattr(action, "reasoning", "").lower()
+
+    # Check text content (typed text / commands) — strict pattern matching
+    for pattern in _DESTRUCTIVE_PATTERNS:
+        if pattern in text:
+            return True
+
+    # Check reasoning for command-level patterns
+    for pattern in _DESTRUCTIVE_PATTERNS:
+        if pattern in reasoning:
+            return True
+
+    # Check reasoning for compound destructive phrases
+    for compound in _DESTRUCTIVE_COMPOUNDS:
+        if compound in reasoning:
+            return True
+
+    return False

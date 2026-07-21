@@ -13,6 +13,7 @@ htmlcov/
 # Environment
 .env
 .venv/
+uv.lock
 
 # IDE
 .vscode/
@@ -30,3 +31,9 @@ Thumbs.db
 
 # Logs
 *.log
+*_log.txt
+
+# Scratch and temporary test files
+scratch_*.py
+scratch/
+

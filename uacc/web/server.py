@@ -70,7 +70,7 @@ logging.getLogger("uacc").setLevel(logging.INFO)
 
 def run_agent_in_background(task: str, mode: str):
     """Background worker that runs the UACC agent."""
-    global agent_state
+    global agent_state, agent_thread
     with agent_lock:
         agent_state["running"] = True
         agent_state["task"] = task
@@ -78,11 +78,10 @@ def run_agent_in_background(task: str, mode: str):
 
     try:
         agent = Agent(mode=mode, max_iterations=agent_state["max_iterations"])
-        
-        # Capture stdout prints by patching prints or just writing logs
-        # Run agent
+        agent_state["_agent"] = agent
+
         res = agent.run(task)
-        
+
         with agent_lock:
             agent_state["last_result"] = res
             agent_state["logs"].append(f"[UI] Task finished: {res.get('message', 'Completed')}")
@@ -93,6 +92,8 @@ def run_agent_in_background(task: str, mode: str):
     finally:
         with agent_lock:
             agent_state["running"] = False
+            agent_state["_agent"] = None
+        agent_thread = None
 
 
 # ── API Endpoints ────────────────────────────────────────────
@@ -123,13 +124,16 @@ async def run_task(req: Request):
 
 @app.post("/api/stop")
 async def stop_task():
-    """Stop the running task."""
-    # Since python threads are not easily killable, we set flag
+    """Stop the running task by calling agent.stop() directly."""
     with agent_lock:
         if not agent_state["running"]:
             return JSONResponse({"success": False, "message": "No active task to stop"})
         agent_state["running"] = False
         agent_state["logs"].append("[UI] Abort requested by user.")
+        _agent = agent_state.get("_agent")
+        if _agent is not None:
+            _agent.stop()
+            agent_state["logs"].append("[UI] Agent.stop() called — graceful shutdown.")
     return {"success": True, "message": "Stop request sent to agent"}
 
 

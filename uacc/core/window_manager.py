@@ -37,10 +37,44 @@ def _is_zoomed(hwnd: int) -> bool:
     try:
         import win32gui
         placement = win32gui.GetWindowPlacement(hwnd)
-        # placement[1] = showCmd: 3=SW_SHOWMAXIMIZED
         return placement[1] == 3
     except Exception:
         return False
+
+
+def is_security_dialog_open() -> Optional[str]:
+    """Check if a Windows Security / UAC dialog is open and blocking input."""
+    if sys.platform != "win32":
+        return None
+    try:
+        import win32gui
+        import win32process
+        import psutil
+
+        dialog_info = []
+
+        def enum_cb(hwnd: int, _: Any) -> None:
+            if win32gui.IsWindowVisible(hwnd):
+                title = win32gui.GetWindowText(hwnd)
+                # Check for common Windows credentials / security / UAC window titles
+                if "Windows Security" in title or "User Account Control" in title or title == "Credentials":
+                    try:
+                        _, pid = win32process.GetWindowThreadProcessId(hwnd)
+                        proc = psutil.Process(pid)
+                        proc_name = proc.name().lower()
+                    except Exception:
+                        proc_name = "unknown"
+
+                    # CredentialUIBroker.exe handles Windows Security prompts, consent.exe handles UAC
+                    if "credentialuibroker" in proc_name or "consent" in proc_name or proc_name == "unknown":
+                        dialog_info.append(f"Title: '{title}' (Process: {proc_name})")
+
+        win32gui.EnumWindows(enum_cb, None)
+        if dialog_info:
+            return "Visible security dialog(s) detected: " + ", ".join(dialog_info)
+    except Exception:
+        pass
+    return None
 
 
 @dataclass
@@ -60,7 +94,7 @@ class WindowInfo:
     is_minimized: bool
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        res = {
             "title": self.title,
             "bounds": {
                 "left": self.bounds[0],
@@ -78,6 +112,12 @@ class WindowInfo:
             "is_maximized": self.is_maximized,
             "is_minimized": self.is_minimized,
         }
+        # Check for active security dialogs
+        security_msg = is_security_dialog_open()
+        if security_msg:
+            res["security_dialog_detected"] = True
+            res["security_dialog_message"] = security_msg
+        return res
 
 
 def _get_window_info(win: Any, is_focused: bool = False) -> Optional[WindowInfo]:
@@ -668,7 +708,25 @@ def minimize_maximize_window(
         if cmd is None:
             return {"success": False, "message": f"Unknown action: {action}. Use minimize/maximize/restore."}
 
-        win32gui.ShowWindow(target_hwnd, cmd)
+        # Use ShowWindow and WM_SYSCOMMAND post message as fallback for robustness
+        try:
+            win32gui.ShowWindow(target_hwnd, cmd)
+        except Exception as e:
+            logger.debug("ShowWindow failed: %s", e)
+
+        # Fallback system commands
+        sys_cmd_map = {
+            "minimize": 0xF020,  # SC_MINIMIZE
+            "maximize": 0xF030,  # SC_MAXIMIZE
+            "restore": 0xF120,   # SC_RESTORE
+        }
+        sys_cmd = sys_cmd_map.get(action.lower())
+        if sys_cmd is not None:
+            try:
+                win32gui.PostMessage(target_hwnd, win32con.WM_SYSCOMMAND, sys_cmd, 0)
+            except Exception as e:
+                logger.debug("PostMessage WM_SYSCOMMAND failed: %s", e)
+
         time.sleep(0.2)
 
         return {
@@ -701,6 +759,24 @@ def launch_application(
     Returns:
         Result dict with success status and process info.
     """
+    # Auto-enable accessibility flags for Chrome and Edge to ensure UIA exposes web content
+    is_chrome_edge = name_or_path.lower() in [
+        "chrome", "edge", "msedge", "chrome.exe", "msedge.exe", "google-chrome", "google chrome"
+    ]
+    if is_chrome_edge:
+        import re
+        profile_name_match = re.search(r'--profile-name=["\']?([^"\']+)["\']?', arguments)
+        if profile_name_match:
+            profile_name = profile_name_match.group(1)
+            folder_name = resolve_chrome_profile(name_or_path, profile_name)
+            if folder_name:
+                arguments = re.sub(r'--profile-name=["\']?[^"\']+["\']?', f'--profile-directory="{folder_name}"', arguments)
+            else:
+                arguments = re.sub(r'--profile-name=["\']?[^"\']+["\']?', '', arguments).strip()
+        
+        if "--force-renderer-accessibility" not in arguments:
+            arguments = (arguments + " --force-renderer-accessibility").strip()
+
     if sys.platform == "win32":
         # Windows-specific app mappings
         APP_ALIASES = {
@@ -822,24 +898,80 @@ def launch_application(
             return {"success": False, "message": f"Failed to launch '{name_or_path}': {exc}"}
 
 
-def open_url(url: str) -> Dict[str, Any]:
+def resolve_chrome_profile(browser_name: str, profile_name: str) -> str | None:
+    """Resolve a Chromium profile name (e.g. 'Chris') to its folder name (e.g. 'Default')."""
+    import json
+    import os
+    import sys
+    from pathlib import Path
+    
+    paths = []
+    if sys.platform == "win32":
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        if local_app_data:
+            if "edge" in browser_name.lower():
+                paths.append(Path(local_app_data) / "Microsoft" / "Edge" / "User Data" / "Local State")
+            else:
+                paths.append(Path(local_app_data) / "Google" / "Chrome" / "User Data" / "Local State")
+    elif sys.platform == "darwin":
+        if "edge" in browser_name.lower():
+            paths.append(Path.home() / "Library" / "Application Support" / "Microsoft Edge" / "Local State")
+        else:
+            paths.append(Path.home() / "Library" / "Application Support" / "Google" / "Chrome" / "Local State")
+    else:
+        if "edge" in browser_name.lower():
+            paths.append(Path.home() / ".config" / "microsoft-edge" / "Local State")
+        else:
+            paths.append(Path.home() / ".config" / "google-chrome" / "Local State")
+            
+    for path in paths:
+        if path.exists():
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                info_cache = data.get("profile", {}).get("info_cache", {})
+                for folder, info in info_cache.items():
+                    if info.get("name", "").lower() == profile_name.lower():
+                        return folder
+            except Exception:
+                pass
+    return None
+
+
+def open_url(url: str, profile_name: str | None = None) -> Dict[str, Any]:
     """Open a URL in the default web browser.
 
     Args:
         url: The URL to open (must start with http:// or https://).
+        profile_name: Optional profile name to open the URL with.
 
     Returns:
         Result dict with success status.
     """
-    import webbrowser
-
     try:
         # Ensure URL has a scheme
         if not url.startswith(("http://", "https://")):
             url = "https://" + url
 
-        webbrowser.open(url)
-        time.sleep(1.0)  # Allow browser to open
+        # Try to launch via Chrome or Edge first to guarantee accessibility flags
+        launched = False
+        for browser in ["chrome", "msedge"]:
+            try:
+                args = url
+                if profile_name:
+                    args = f'--profile-name="{profile_name}" ' + args
+                res = launch_application(browser, arguments=args)
+                if res["success"]:
+                    launched = True
+                    break
+            except Exception:
+                pass
+
+        if not launched:
+            import webbrowser
+            webbrowser.open(url)
+
+        time.sleep(1.5)  # Allow browser to open and load
 
         return {
             "success": True,

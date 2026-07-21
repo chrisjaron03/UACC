@@ -104,23 +104,76 @@ def grid_cell_to_pixel(
 
 # ── Set-of-Mark Badges ──────────────────────────────────────
 
+# Role → badge colour mapping for color-coded SoM badges
+_ROLE_COLORS: dict[str, tuple] = {
+    "button": (230, 60, 60),        # Red — actionable
+    "menu_item": (200, 100, 50),     # Orange — navigation
+    "tab": (180, 120, 200),          # Purple — view switch
+    "link": (60, 120, 230),          # Blue — reference
+    "text_input": (60, 180, 100),    # Green — data entry
+    "text_area": (60, 180, 100),     # Green — data entry
+    "checkbox": (60, 160, 180),      # Teal — toggle
+    "radio": (60, 160, 180),         # Teal — toggle
+    "dropdown": (180, 160, 60),      # Gold — selection
+    "tree_item": (140, 100, 60),     # Brown — hierarchy
+    "slider": (100, 160, 200),       # Sky — adjustment
+    "spinner": (100, 160, 200),      # Sky — adjustment
+    "default": (230, 60, 60),        # Red fallback
+}
+
+_DEFAULT_BADGE = (230, 60, 60)
+
+
+def _get_role_badge_color(control_type: str) -> tuple:
+    """Return the badge colour for a UI element based on its role."""
+    return _ROLE_COLORS.get(control_type.lower(), _DEFAULT_BADGE)
+
+
+def _stable_marker_id(el: UIElement) -> int:
+    """Generate a stable badge number from element position and type.
+
+    Uses a simple hash of (name, control_type, center_x, center_y)
+    to produce a deterministic marker number that survives re-renders
+    as long as the element doesn't move.
+    """
+    raw = f"{el.name}|{el.control_type}|{el.center[0]}|{el.center[1]}"
+    h = hash(raw) & 0x7FFFFFFF
+    return (h % 998) + 1  # 1..999
+
+
 def overlay_markers(
     image: Image.Image,
     elements: List[UIElement],
     max_markers: int = 80,
     badge_radius: int = 12,
-    badge_color: Tuple[int, int, int] = (230, 60, 60),
+    badge_color: Tuple[int, int, int] | None = None,
     text_color: Tuple[int, int, int] = (255, 255, 255),
+    color_by_role: bool = True,
+    stable_labels: bool = True,
 ) -> Image.Image:
-    """Place numbered circular badges on interactive UI elements.
+    """Place numbered circular badges on interactive UI elements (Set-of-Mark).
+
+    When color_by_role is enabled, badges are colour-coded by element type:
+      - Red: buttons, menus          — primary actions
+      - Green: text inputs, areas     — data entry
+      - Blue: links                   — navigation
+      - Purple: tabs, sections        — view switching
+      - Gold: dropdowns, selectors    — selection
+      - Teal: checkboxes, radios      — toggles
+
+    When stable_labels is enabled, badge numbers are deterministic
+    (based on element position + name hash), so the same element
+    gets the same badge number across re-observations.
 
     Args:
         image: Source screenshot.
         elements: UI elements (only clickable/editable ones get badges).
         max_markers: Maximum number of badges to draw.
         badge_radius: Radius of each badge circle.
-        badge_color: RGB fill colour for badges.
+        badge_color: Override badge colour for all (disables color_by_role).
         text_color: RGB colour for badge numbers.
+        color_by_role: If True, colour badges by element role.
+        stable_labels: If True, use deterministic badge numbers.
 
     Returns:
         New PIL Image with badges overlaid.
@@ -129,7 +182,6 @@ def overlay_markers(
     overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
 
-    # Filter to interactive elements only
     interactive = [
         el for el in elements
         if el.clickable or el.editable or el.expandable
@@ -137,24 +189,31 @@ def overlay_markers(
 
     font = _get_font(max(9, badge_radius))
 
-    for idx, el in enumerate(interactive, start=1):
+    for idx, el in enumerate(interactive):
         cx, cy = el.center
         r = badge_radius
 
-        # Draw badge circle with slight shadow
+        label = str(_stable_marker_id(el)) if stable_labels else str(idx + 1)
+
+        use_color: tuple
+        if badge_color:
+            use_color = badge_color
+        elif color_by_role:
+            use_color = _get_role_badge_color(el.control_type)
+        else:
+            use_color = _DEFAULT_BADGE
+
         draw.ellipse(
             [cx - r - 1, cy - r - 1, cx + r + 1, cy + r + 1],
             fill=(0, 0, 0, 120),
         )
         draw.ellipse(
             [cx - r, cy - r, cx + r, cy + r],
-            fill=(*badge_color, 230),
+            fill=(*use_color, 230),
             outline=(255, 255, 255, 200),
             width=1,
         )
 
-        # Draw number
-        label = str(idx)
         draw.text(
             (cx, cy), label,
             fill=(*text_color, 255),
@@ -166,7 +225,11 @@ def overlay_markers(
     return result
 
 
-def build_marker_legend(elements: List[UIElement], max_markers: int = 80) -> str:
+def build_marker_legend(
+    elements: List[UIElement],
+    max_markers: int = 80,
+    stable_labels: bool = True,
+) -> str:
     """Build a text legend mapping badge numbers to element info.
 
     Sent alongside the marked screenshot so the model knows what each
@@ -174,20 +237,31 @@ def build_marker_legend(elements: List[UIElement], max_markers: int = 80) -> str
 
     Returns:
         Multi-line string like:
-            [1] button "File"  at (22, 15)
-            [2] menu_item "Edit"  at (67, 15)
+            [1]  button      "File"      at (22, 15)   clickable
+            [2]  menu_item   "Edit"      at (67, 15)   clickable
+            [3]  text_input  "Search"    at (680, 12)  editable
     """
     interactive = [
         el for el in elements
         if el.clickable or el.editable or el.expandable
     ][:max_markers]
 
-    lines = []
-    for idx, el in enumerate(interactive, start=1):
+    lines = ["# Badge Legend"]
+    for idx, el in enumerate(interactive):
+        marker = _stable_marker_id(el) if stable_labels else idx + 1
         name = el.name[:50] if el.name else "(unnamed)"
+        flags = []
+        if el.clickable:
+            flags.append("clickable")
+        if el.editable:
+            flags.append("editable")
+        if el.expandable:
+            flags.append("expandable")
+
         lines.append(
-            f'[{idx}] {el.control_type:<14} "{name}"  at ({el.center[0]}, {el.center[1]})'
+            f"[{marker:>3}] {el.control_type:<14} \"{name}\"  at ({el.center[0]:>4}, {el.center[1]:>4})  {', '.join(flags)}"
         )
+
     return "\n".join(lines)
 
 

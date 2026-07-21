@@ -197,3 +197,16 @@ def drag_human(
 
     # Release
     pyautogui.mouseUp(button=button)
+
+
+class HumanMimicryEngine:
+    """Wrapper engine for human mimicry settings and profiles."""
+
+    def __init__(self, current_profile: str = "normal"):
+        self.typing_profiles = {
+            "slow": 35,
+            "normal": 70,
+            "fast": 110,
+        }
+        self.current_profile = current_profile
+

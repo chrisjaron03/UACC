@@ -186,14 +186,25 @@ class ActionExecutor:
         }
 
     def _type(self, action: TypeAction) -> dict:
-        """Type text."""
+        """Type text, with unicode fallback via clipboard paste."""
         if self.human_mimicry and action.delay_ms == 0:
-            type_human(action.text)
+            # human_mimicry typing only handles ASCII — check for non-ASCII
+            if all(ord(c) < 128 for c in action.text):
+                type_human(action.text)
+            else:
+                self._type_via_clipboard(action.text)
         elif action.delay_ms > 0:
-            pyautogui.typewrite(action.text, interval=action.delay_ms / 1000)
+            # typewrite can't handle unicode at all
+            if all(ord(c) < 128 for c in action.text):
+                pyautogui.typewrite(action.text, interval=action.delay_ms / 1000)
+            else:
+                self._type_via_clipboard(action.text)
         else:
-            # Use write() for fast typing — handles special characters
-            pyautogui.write(action.text)
+            # Fast path: check if text is ASCII-only
+            if all(ord(c) < 128 for c in action.text):
+                pyautogui.write(action.text)
+            else:
+                self._type_via_clipboard(action.text)
 
         logger.info("Typed: %s", action.text[:50])
         return {
@@ -201,6 +212,24 @@ class ActionExecutor:
             "message": f"Typed {len(action.text)} characters",
             "action": "type",
         }
+
+    def _type_via_clipboard(self, text: str) -> None:
+        """Paste text via clipboard — handles unicode, special chars, newlines."""
+        from uacc.core.clipboard import read_clipboard, write_clipboard
+        # Save original clipboard
+        original = read_clipboard()
+        original_text = original.get("text", "") if original.get("success") else ""
+        try:
+            write_clipboard(text)
+            time.sleep(0.05)
+            pyautogui.hotkey("ctrl", "v")
+            time.sleep(0.05)
+        finally:
+            # Restore original clipboard (fire-and-forget)
+            try:
+                write_clipboard(original_text)
+            except Exception:
+                pass
 
     def _hotkey(self, action: HotkeyAction) -> dict:
         """Press a hotkey combination."""

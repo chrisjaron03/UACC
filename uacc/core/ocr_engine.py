@@ -1,18 +1,25 @@
 """
 OCR Engine — extract visible text and positions from a screenshot.
 
-Uses EasyOCR for offline, GPU-accelerated text detection.  The engine
+Uses EasyOCR for offline, GPU-accelerated text detection. The engine
 is loaded once and reused across calls for speed.
+
+GPU acceleration is auto-detected; falls back to CPU if no CUDA device
+is available. Set UACC_OCR_GPU=false to force CPU-only mode.
 """
 
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 import numpy as np
 from PIL import Image
+
+# Suppress torch's noisy pin_memory warning when no GPU is present
+os.environ.setdefault("TORCH_CPP_LOG_LEVEL", "ERROR")
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +45,17 @@ class OCRResult:
         return self.bounds[3] - self.bounds[1]
 
 
+def _gpu_available() -> bool:
+    """Check if CUDA is actually available before asking EasyOCR to use it."""
+    try:
+        import torch
+        return torch.cuda.is_available()
+    except ImportError:
+        return False
+    except Exception:
+        return False
+
+
 def _get_reader() -> object:
     """Lazily initialise the EasyOCR reader (downloads model on first run)."""
     global _reader
@@ -45,12 +63,20 @@ def _get_reader() -> object:
         try:
             import easyocr
 
+            env_override = os.environ.get("UACC_OCR_GPU", "").strip().lower()
+            if env_override == "false":
+                use_gpu = False
+            elif env_override == "true":
+                use_gpu = True
+            else:
+                use_gpu = _gpu_available()
+
             _reader = easyocr.Reader(
                 ["en"],
-                gpu=True,
+                gpu=use_gpu,
                 verbose=False,
             )
-            logger.info("EasyOCR reader initialised (GPU if available)")
+            logger.info("EasyOCR reader initialised (gpu=%s)", use_gpu)
         except ImportError:
             raise ImportError(
                 "easyocr is required for OCR. Install with: pip install easyocr"

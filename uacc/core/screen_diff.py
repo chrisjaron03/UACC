@@ -1,18 +1,24 @@
 """
-Screen Diff Engine — fast pixel-level comparison between consecutive
+Screen Diff Engine — pixel-level + semantic comparison between consecutive
 screenshots to detect what changed after an action.
+
+The semantic checks (OCR text diff, element-count diff, window-title diff)
+catch cases that pure pixel comparison misses — e.g. a dialog appearing
+with the same background color, or cursor movement masking a real change.
 """
 
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from typing import List, Tuple
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+# ── Pixel-level diff ──────────────────────────────────────────
 
 
 @dataclass
@@ -37,28 +43,78 @@ class ChangedRegion:
 
 
 @dataclass
+class SemanticDiff:
+    """Semantic differences detected between two screen states."""
+
+    window_title_changed: bool = False
+    window_title_before: str = ""
+    window_title_after: str = ""
+    text_added: List[str] = field(default_factory=list)
+    text_removed: List[str] = field(default_factory=list)
+    element_count_changed: bool = False
+    element_count_before: int = 0
+    element_count_after: int = 0
+    changed_elements: List[str] = field(default_factory=list)
+
+    @property
+    def changed(self) -> bool:
+        return any([
+            self.window_title_changed,
+            self.text_added,
+            self.text_removed,
+            self.element_count_changed,
+            self.changed_elements,
+        ])
+
+    @property
+    def summary(self) -> str:
+        parts = []
+        if self.window_title_changed:
+            parts.append(f"window: \"{self.window_title_before}\" → \"{self.window_title_after}\"")
+        if self.element_count_changed:
+            parts.append(f"elements: {self.element_count_before} → {self.element_count_after}")
+        if len(self.text_added) <= 3:
+            for t in self.text_added:
+                parts.append(f"+ \"{t[:40]}\"")
+        elif self.text_added:
+            parts.append(f"+{len(self.text_added)} text regions")
+        if len(self.text_removed) <= 3:
+            for t in self.text_removed:
+                parts.append(f"- \"{t[:40]}\"")
+        elif self.text_removed:
+            parts.append(f"-{len(self.text_removed)} text regions")
+        for e in self.changed_elements[:3]:
+            parts.append(f"~ {e[:60]}")
+        return "; ".join(parts) if parts else "No semantic change"
+
+
+@dataclass
 class DiffResult:
-    """Result of comparing two screenshots."""
+    """Result of comparing two screenshots — pixel + semantic."""
 
     changed: bool
     changed_percentage: float  # 0.0 – 100.0
     regions: List[ChangedRegion]
     total_pixels_changed: int
+    semantic: Optional[SemanticDiff] = None
 
     @property
     def summary(self) -> str:
-        if not self.changed:
-            return "No change detected"
-        region_strs = [
-            f"  region at ({r.bounds[0]},{r.bounds[1]})–({r.bounds[2]},{r.bounds[3]})  "
-            f"{r.width}×{r.height}px  intensity={r.change_intensity:.1f}"
-            for r in self.regions
-        ]
-        return (
-            f"Changed: {self.changed_percentage:.1f}% of screen  "
-            f"({self.total_pixels_changed} pixels)\n"
-            + "\n".join(region_strs)
-        )
+        lines = []
+        if self.changed:
+            lines.append(
+                f"Changed: {self.changed_percentage:.1f}% of screen ({self.total_pixels_changed} pixels)"
+            )
+            for r in self.regions[:5]:
+                lines.append(
+                    f"  region ({r.bounds[0]},{r.bounds[1]})–({r.bounds[2]},{r.bounds[3]})  "
+                    f"{r.width}×{r.height}px  intensity={r.change_intensity:.1f}"
+                )
+        else:
+            lines.append("No pixel change detected")
+        if self.semantic and self.semantic.changed:
+            lines.append(f"  semantic: {self.semantic.summary}")
+        return "\n".join(lines)
 
 
 def has_changed(
@@ -86,24 +142,108 @@ def has_changed(
     return pct > threshold
 
 
+def compute_semantic_diff(
+    before_text_map: Optional[str],
+    after_text_map: Optional[str],
+    before_window_title: str = "",
+    after_window_title: str = "",
+) -> SemanticDiff:
+    """Detect semantic differences between two screen states.
+
+    Compares text map content and window titles to identify changes
+    that pixel-level diff might miss.
+
+    Args:
+        before_text_map: Compact text from before the action (or None).
+        after_text_map: Compact text after the action (or None).
+        before_window_title: Active window title before.
+        after_window_title: Active window title after.
+
+    Returns:
+        SemanticDiff with detected changes.
+    """
+    sem = SemanticDiff(
+        window_title_before=before_window_title,
+        window_title_after=after_window_title,
+    )
+
+    # Window title change
+    if before_window_title and after_window_title and before_window_title != after_window_title:
+        sem.window_title_changed = True
+
+    # Text map content diff
+    if before_text_map and after_text_map:
+        before_lines = set(before_text_map.split("\n"))
+        after_lines = set(after_text_map.split("\n"))
+
+        added = after_lines - before_lines
+        removed = before_lines - after_lines
+
+        # Filter out noisy lines (screenshot timestamps, coordinates with small changes)
+        for line in added:
+            clean = line.strip()
+            if clean and not clean.startswith("Screen:") and not clean.startswith("───"):
+                sem.text_added.append(clean)
+
+        for line in removed:
+            clean = line.strip()
+            if clean and not clean.startswith("Screen:") and not clean.startswith("───"):
+                sem.text_removed.append(clean)
+
+        # Detect element count changes
+        import re
+        before_count = len(re.findall(r'^\[', before_text_map, re.MULTILINE))
+        after_count = len(re.findall(r'^\[', after_text_map, re.MULTILINE))
+        if before_count != after_count:
+            sem.element_count_changed = True
+            sem.element_count_before = before_count
+            sem.element_count_after = after_count
+
+        # Detect specific element type changes
+        interactive_pattern = r'(button|menu_item|text_input|dialog|window|tab) '
+        before_types = set(re.findall(interactive_pattern, before_text_map, re.IGNORECASE))
+        after_types = set(re.findall(interactive_pattern, after_text_map, re.IGNORECASE))
+        new_types = after_types - before_types
+        for t in new_types:
+            sem.changed_elements.append(f"New {t} appeared")
+
+    return sem
+
+
 def compute_diff(
     before: Image.Image,
     after: Image.Image,
     pixel_threshold: int = 20,
     min_region_area: int = 100,
     merge_distance: int = 30,
+    before_text_map: Optional[str] = None,
+    after_text_map: Optional[str] = None,
+    before_window_title: str = "",
+    after_window_title: str = "",
 ) -> DiffResult:
-    """Compute a detailed diff between two screenshots.
+    """Compute a detailed diff between two screenshots — pixel + semantic.
 
     Args:
         before, after: Consecutive screenshots (same size).
         pixel_threshold: Minimum per-channel difference to count as changed.
         min_region_area: Ignore regions smaller than this (noise filtering).
         merge_distance: Merge nearby changed regions within this distance.
+        before_text_map: Text map before action (for semantic diff).
+        after_text_map: Text map after action (for semantic diff).
+        before_window_title: Window title before (for semantic diff).
+        after_window_title: Window title after (for semantic diff).
 
     Returns:
-        DiffResult with list of changed regions.
+        DiffResult with pixel + semantic change information.
     """
+    # Compute semantic diff first (always, even if pixel diff fails)
+    sem = compute_semantic_diff(
+        before_text_map=before_text_map,
+        after_text_map=after_text_map,
+        before_window_title=before_window_title,
+        after_window_title=after_window_title,
+    )
+
     a = np.array(before.convert("RGB"), dtype=np.int16)
     b = np.array(after.convert("RGB"), dtype=np.int16)
 
@@ -115,6 +255,7 @@ def compute_diff(
             changed_percentage=100.0,
             regions=[ChangedRegion((0, 0, w, h), w * h, 255.0)],
             total_pixels_changed=w * h,
+            semantic=sem,
         )
 
     # Per-pixel difference (average across RGB)
@@ -125,22 +266,29 @@ def compute_diff(
     changed_pixels = int(mask.sum())
     pct = (changed_pixels / total_pixels) * 100
 
+    # If no pixel change detected, defer to semantic diff
     if changed_pixels == 0:
         return DiffResult(
-            changed=False,
+            changed=sem.changed,
             changed_percentage=0.0,
             regions=[],
             total_pixels_changed=0,
+            semantic=sem,
         )
 
-    # Find contiguous changed regions using connected components
+    # Find contiguous changed regions
     regions = _find_regions(mask, diff, min_region_area, merge_distance)
 
+    pixel_changed_pct = round(pct, 2)
+    # Combine: consider "changed" if either pixel or semantic says so
+    overall_changed = pixel_changed_pct > 0.5 or sem.changed
+
     return DiffResult(
-        changed=True,
-        changed_percentage=round(pct, 2),
+        changed=overall_changed,
+        changed_percentage=pixel_changed_pct,
         regions=regions,
         total_pixels_changed=changed_pixels,
+        semantic=sem,
     )
 
 

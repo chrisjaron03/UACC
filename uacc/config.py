@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 from dotenv import load_dotenv
 
@@ -57,6 +57,14 @@ class UACCConfig:
     )
     pyautogui_failsafe: bool = field(
         default_factory=lambda: os.getenv("UACC_FAILSAFE", "true").lower() == "true"
+    )
+
+    # Safety policy
+    safety_policy: str = field(
+        default_factory=lambda: os.getenv("UACC_SAFETY_POLICY", "balanced")
+    )
+    safety_ask_confirmation: bool = field(
+        default_factory=lambda: os.getenv("UACC_SAFETY_ASK_CONFIRMATION", "true").lower() == "true"
     )
 
     # Grid dimensions for each mode  (columns × rows)

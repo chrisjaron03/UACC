@@ -36,10 +36,10 @@ import argparse
 import json
 import logging
 import sys
-# Clean up any hermes paths from sys.path to prevent binary compatibility issues with Python 3.13
-sys.path = [p for p in sys.path if 'hermes' not in p.lower() and 'hermes-agent' not in p.lower()]
+import threading
 
 from mcp.server.fastmcp import FastMCP
+import mcp.types as t
 
 from uacc.actions.executor import ActionExecutor
 from uacc.actions.schema import (
@@ -64,6 +64,7 @@ from uacc.core.screen_capture import (
     capture_full,
     capture_region,
     get_screen_size,
+    list_monitors as _list_monitors,
 )
 from uacc.core.text_map import build_text_map
 from uacc.core.window_manager import (
@@ -77,7 +78,10 @@ from uacc.core.window_manager import (
     resize_window as _resize_window,
 )
 
+from uacc import __version__ as uacc_version
 from uacc.actions.artistic_painter import ArtisticPainter
+from uacc.tasks import TaskManager, TaskStatus
+from uacc.tools import ToolRegistry, ToolDef
 from uacc.workflows import get_store, Workflow, WorkflowStep, workflow_step
 
 from uacc_mcp.utils import (
@@ -127,81 +131,163 @@ def screenshot(
     region_y: int | None = None,
     width: int | None = None,
     height: int | None = None,
+    monitor_index: int = 1,
     format: str = "PNG",
     quality: int = 80,
-) -> str:
+    save_path: str | None = None,
+) -> list[t.TextContent | t.ImageContent]:
     """Capture a screenshot of the screen.
 
-    Returns a base64-encoded image. Capture the full screen by default,
-    or a specific region by providing coordinates.
+    Returns a base64-encoded image inline as an MCP ImageContent object by default, 
+    or saves to a file if save_path is provided.
+    Capture the full screen by default, or a specific region by providing coordinates.
 
     Args:
         region_x: Left edge of the capture region (omit for full screen).
         region_y: Top edge of the capture region (omit for full screen).
         width: Width of the capture region in pixels.
         height: Height of the capture region in pixels.
+        monitor_index: Which monitor to capture (1-based, 1 = primary). Use list_monitors to see available monitors.
         format: Image format — "PNG" (lossless) or "JPEG" (smaller).
         quality: JPEG quality 1-100 (ignored for PNG).
+        save_path: Optional local file path (e.g. "C:\\temp\\screen.png") to save the image.
 
     Returns:
-        JSON with base64-encoded image data and metadata.
+        List containing JSON metadata and/or the inline screenshot image.
     """
     try:
         if region_x is not None and region_y is not None and width and height:
             img = capture_region(region_x, region_y, width, height)
             region_info = f"{width}×{height} at ({region_x}, {region_y})"
         else:
-            img = capture_full()
+            img = capture_full(monitor_index=monitor_index)
             screen_w, screen_h = img.size
-            region_info = f"full screen {screen_w}×{screen_h}"
+            region_info = f"full screen {screen_w}×{screen_h} (monitor {monitor_index})"
+
+        session = get_session()
+
+        if save_path:
+            import os
+            # Ensure parent directories exist
+            dir_name = os.path.dirname(os.path.abspath(save_path))
+            if dir_name:
+                os.makedirs(dir_name, exist_ok=True)
+            img.save(save_path)
+            session.log_action("screenshot", {"region": region_info, "save_path": save_path}, {"success": True})
+            return [t.TextContent(type="text", text=json.dumps({
+                "success": True,
+                "saved_to": save_path,
+                "width": img.size[0],
+                "height": img.size[1],
+                "region": region_info,
+            }))]
 
         b64 = image_to_base64(img, fmt=format, quality=quality)
         media_type = get_image_media_type(format)
-
-        session = get_session()
         session.log_action("screenshot", {"region": region_info}, {"success": True})
 
-        return json.dumps({
-            "success": True,
-            "image_base64": b64,
-            "media_type": media_type,
-            "width": img.size[0],
-            "height": img.size[1],
-            "region": region_info,
-        })
+        return [
+            t.TextContent(type="text", text=json.dumps({
+                "success": True,
+                "width": img.size[0],
+                "height": img.size[1],
+                "region": region_info,
+            })),
+            t.ImageContent(type="image", data=b64, mimeType=media_type)
+        ]
 
     except Exception as exc:
-        return json.dumps({"success": False, "error": format_error(exc, "Screenshot capture failed")})
+        return [t.TextContent(type="text", text=json.dumps({"success": False, "error": format_error(exc, "Screenshot capture failed")}))]
+
+
+# ═══════════════════════════════════════════════════════════════
+#  SHARED SCREEN SCANNER (used by get_screen_info + find_element)
+# ═══════════════════════════════════════════════════════════════
+
+def _scan_screen(
+    include_ocr: bool = False,
+) -> tuple:
+    """Perform a full screen scan: accessibility tree + optional OCR.
+
+    Returns (screen_w, screen_h, text_map, active_window).
+    """
+    screen_w, screen_h = get_screen_size()
+    ui_elements = get_ui_tree()
+
+    active_window = ""
+    if ui_elements and ui_elements[0].name:
+        active_window = ui_elements[0].name
+
+    # Optionally run OCR to catch text the accessibility tree misses
+    ocr_results = None
+    if include_ocr:
+        try:
+            from uacc.core.ocr_engine import extract_text
+            from uacc.core.screen_capture import capture_full as _cap
+            img = _cap()
+            ocr_results = extract_text(img)
+            logger.info("OCR returned %d text regions", len(ocr_results))
+        except ImportError:
+            logger.debug("easyocr not installed — skipping OCR")
+        except Exception as ocr_exc:
+            logger.warning("OCR failed: %s", ocr_exc)
+
+    text_map = build_text_map(
+        screen_width=screen_w,
+        screen_height=screen_h,
+        ui_elements=ui_elements,
+        ocr_results=ocr_results,
+        active_window=active_window,
+    )
+    return screen_w, screen_h, text_map, active_window
 
 
 @mcp.tool()
-def get_screen_info(include_non_interactive: bool = False) -> str:
-    """Get a structured text map of all UI elements on the current screen.
+def list_monitors() -> str:
+    """List all connected monitors with their dimensions and positions.
 
-    Returns the screen state as a compact text representation showing every
-    interactive element with its type, label, coordinates, and capabilities.
-    This is how text-only LLMs "see" the screen.
+    Useful for multi-monitor setups — use the monitor index with
+    the screenshot tool to capture from a specific monitor.
+
+    Returns:
+        JSON with list of monitors (index, position, size).
+    """
+    try:
+        monitors = _list_monitors()
+        return json.dumps({
+            "success": True,
+            "count": len(monitors),
+            "monitors": monitors,
+        })
+    except Exception as exc:
+        return json.dumps({"success": False, "error": format_error(exc, "List monitors failed")})
+
+
+@mcp.tool()
+def get_screen_info(include_non_interactive: bool = False, include_ocr: bool = False) -> str:
+    """Analyse the current screen and return a structured text map of all UI elements.
+
+    This is the PRIMARY tool for understanding the screen before acting. Call this
+    BEFORE clicking or typing to discover what's on screen. Use screenshot
+    (which returns a visual image) when you need visual confirmation of layout.
+
+    The text map shows every interactive element (buttons, inputs, menus, tabs)
+    with its type, label text, screen coordinates, and interactivity flags.
+    Elements are numbered for cross-referencing with screenshot markers.
 
     Args:
         include_non_interactive: If True, include labels and static text.
                                   If False, only interactive elements (buttons, inputs, etc.).
+        include_ocr: If True, also run OCR on a screenshot to detect text that the
+                      accessibility tree misses (images, canvas, rendered text).
+                      Slower (~200-500ms) but catches more text.
 
     Returns:
-        Structured text map of the screen with element positions.
+        JSON with screen dimensions, active window, element count, and text map.
     """
     try:
-        screen_w, screen_h = get_screen_size()
-        ui_elements = get_ui_tree()
-
-        active_window = ""
-        if ui_elements and ui_elements[0].name:
-            active_window = ui_elements[0].name
-
-        text_map = build_text_map(
-            screen_width=screen_w,
-            screen_height=screen_h,
-            ui_elements=ui_elements,
-            active_window=active_window,
+        screen_w, screen_h, text_map, active_window = _scan_screen(
+            include_ocr=include_ocr,
         )
 
         # Cache elements for find_element
@@ -220,6 +306,9 @@ def get_screen_info(include_non_interactive: bool = False) -> str:
             if el.clickable or el.editable or el.expandable
         )
 
+        from uacc.core.window_manager import is_security_dialog_open
+        security_msg = is_security_dialog_open()
+
         result = {
             "success": True,
             "screen_width": screen_w,
@@ -229,6 +318,10 @@ def get_screen_info(include_non_interactive: bool = False) -> str:
             "interactive_elements": interactive_count,
             "text_map": compact,
         }
+
+        if security_msg:
+            result["security_dialog_detected"] = True
+            result["security_dialog_message"] = security_msg
 
         if include_non_interactive:
             result["full_yaml"] = text_map.to_yaml()
@@ -254,18 +347,22 @@ def click(
     modifiers: list[str] | None = None,
     reasoning: str = "",
 ) -> str:
-    """Click at exact screen coordinates.
+    """Click at exact pixel coordinates on screen.
+
+    Use this when you have precise coordinates from get_screen_info or
+    find_element. For clicking by element name (fuzzy matched), use click_element instead.
+    Coordinates are screen-absolute (0,0 = top-left).
 
     Args:
-        x: X coordinate (pixels from left edge).
-        y: Y coordinate (pixels from top edge).
+        x: X coordinate in pixels from the left edge of the screen.
+        y: Y coordinate in pixels from the top edge of the screen.
         button: Mouse button — "left", "right", or "middle".
         count: Click count — 1 for single click, 2 for double click.
-        modifiers: Modifier keys to hold — e.g. ["ctrl"], ["shift", "ctrl"].
-        reasoning: Why you're clicking here (for logging).
+        modifiers: Modifier keys to hold during click — e.g. ["ctrl"], ["shift", "ctrl"].
+        reasoning: Why you're clicking here (logged for debugging).
 
     Returns:
-        JSON with success status and message.
+        JSON with success status, message, and the coordinates used.
     """
     try:
         action = ClickAction(
@@ -296,6 +393,7 @@ def click(
         })
 
     except Exception as exc:
+        logger.error("Click failed at (%d, %d): %s", x, y, exc, exc_info=False)
         return json.dumps({"success": False, "error": format_error(exc, "Click failed")})
 
 
@@ -577,19 +675,7 @@ def find_element(
         session = get_session()
 
         if refresh:
-            screen_w, screen_h = get_screen_size()
-            ui_elements = get_ui_tree()
-
-            active_window = ""
-            if ui_elements and ui_elements[0].name:
-                active_window = ui_elements[0].name
-
-            text_map = build_text_map(
-                screen_width=screen_w,
-                screen_height=screen_h,
-                ui_elements=ui_elements,
-                active_window=active_window,
-            )
+            screen_w, screen_h, text_map, _ = _scan_screen()
 
             element_dicts = [el.to_dict() for el in text_map.all_elements]
             for el_dict, el_obj in zip(element_dicts, text_map.all_elements):
@@ -823,25 +909,109 @@ def launch_app(
 
 
 @mcp.tool()
-def open_url(url: str) -> str:
+def open_url(url: str, profile_name: str | None = None) -> str:
     """Open a URL in the default web browser.
 
     Args:
         url: The URL to open. Will auto-prepend https:// if no scheme.
+        profile_name: Optional profile name to open the URL with (e.g. 'Chris').
 
     Returns:
         JSON with success status.
     """
     try:
-        result = _open_url(url)
+        result = _open_url(url, profile_name=profile_name)
 
         session = get_session()
-        session.log_action("open_url", {"url": url}, result)
+        session.log_action("open_url", {"url": url, "profile_name": profile_name}, result)
 
         return json.dumps(result)
 
     except Exception as exc:
         return json.dumps({"success": False, "error": format_error(exc, "Open URL failed")})
+
+
+@mcp.tool()
+def execute_actions(actions: list[dict]) -> list[t.TextContent | t.ImageContent]:
+    """Execute a list of UI actions sequentially in a single tool call, returning the step results and a final screenshot.
+
+    This is the most efficient way to perform multi-step UI automation.
+    The execution stops immediately if any action fails.
+
+    Args:
+        actions: A list of dicts. Each dict must have an "action" key.
+            Examples of action dicts:
+            - {"action": "click", "x": 100, "y": 200, "button": "left", "count": 1, "modifiers": []}
+            - {"action": "type", "text": "hello", "delay_ms": 0}
+            - {"action": "hotkey", "keys": ["ctrl", "s"]}
+            - {"action": "wait", "duration_ms": 1000}
+            - {"action": "scroll", "x": 100, "y": 200, "direction": "down", "amount": 3}
+            - {"action": "drag", "start_x": 100, "start_y": 100, "end_x": 200, "end_y": 200, "button": "left", "duration_ms": 500}
+            - {"action": "hover", "x": 100, "y": 200, "duration_ms": 500}
+            - {"action": "clipboard", "mode": "write", "text": "hello"}
+            - {"action": "clipboard", "mode": "read"}
+            - {"action": "focus_window", "title": "Chrome"}
+            - {"action": "launch", "name_or_path": "notepad", "arguments": ""}
+            - {"action": "screenshot"}
+
+    Returns:
+        List containing a TextContent block with the JSON results of all steps, and an ImageContent block with the final screenshot.
+    """
+    from uacc.actions.schema import parse_action
+    
+    executor = _get_executor()
+    results = []
+    session = get_session()
+    
+    def get_final_result(success: bool, error: str | None = None, executed: int = 0):
+        try:
+            img = capture_full()
+            b64 = image_to_base64(img, fmt="JPEG", quality=80)
+            media_type = get_image_media_type("JPEG")
+            img_content = t.ImageContent(type="image", data=b64, mimeType=media_type)
+        except Exception as e:
+            img_content = t.TextContent(type="text", text=f"Failed to capture final screenshot: {e}")
+            
+        metadata = {
+            "success": success,
+            "results": results,
+            "actions_executed": executed,
+        }
+        if error:
+            metadata["error"] = error
+            
+        return [
+            t.TextContent(type="text", text=json.dumps(metadata)),
+            img_content
+        ]
+
+    for idx, act_dict in enumerate(actions):
+        try:
+            # Map tool name aliases if present to match backend Action schema definitions
+            if act_dict.get("action") == "launch_app":
+                act_dict["action"] = "launch"
+            elif act_dict.get("action") == "clipboard_write":
+                act_dict["action"] = "clipboard"
+                act_dict["mode"] = "write"
+            elif act_dict.get("action") == "clipboard_read":
+                act_dict["action"] = "clipboard"
+                act_dict["mode"] = "read"
+                
+            action_obj = parse_action(act_dict)
+        except Exception as exc:
+            err_msg = f"Failed to parse action at index {idx}: {exc}"
+            logger.error(err_msg)
+            return get_final_result(success=False, error=err_msg, executed=idx)
+        
+        res = executor.execute(action_obj)
+        results.append(res)
+        session.log_action(f"batch_{action_obj.action}", act_dict, res)
+        
+        if not res.get("success", False):
+            err_msg = f"Action at index {idx} ({action_obj.action}) failed: {res.get('message', '')}"
+            return get_final_result(success=False, error=err_msg, executed=idx + 1)
+            
+    return get_final_result(success=True, executed=len(actions))
 
 
 @mcp.tool()
@@ -962,21 +1132,26 @@ def click_element(
     button: str = "left",
     reasoning: str = "",
 ) -> str:
-    """Find a UI element by name and click it.
+    """Find a UI element by its visible label and click it.
 
-    This is the "easy mode" alternative to raw coordinate clicking.
-    UACC finds the element using fuzzy name matching and clicks its
-    center coordinates automatically.
+    The PREFERRED way to click — uses fuzzy text matching so you don't
+    need exact coordinates. For example, click_element("Save") will find
+    the Save button wherever it is on screen. Falls back to raw click(x,y)
+    if no matching element is found.
+
+    Use click(x, y) instead when you have precise coordinates from a
+    previous detection, or when clicking on coordinates that don't
+    correspond to a named element.
 
     Args:
-        name: Text to search for in element labels (fuzzy match).
-              Examples: "File", "Save", "OK", "Submit", "Cancel".
-        element_type: Optional type filter (button, menu_item, text_input, etc.).
+        name: Text to search for in element labels (case-insensitive fuzzy match).
+              Examples: "File", "Save", "OK", "Submit", "Cancel", "Close".
+        element_type: Optional type filter (button, menu_item, text_input, checkbox, etc.).
         button: Mouse button — "left", "right", or "middle".
-        reasoning: Why you're clicking this element (for logging).
+        reasoning: Why you're clicking this element (logged for debugging).
 
     Returns:
-        JSON with clicked element info and coordinates.
+        JSON with clicked element info, matched text, and coordinates.
     """
     try:
         find_result = click_element_by_name(
@@ -1486,8 +1661,9 @@ def run_workflow(name: str) -> str:
             tool_name = step.tool
             params = step.params
 
-            # Look up the MCP tool function from the global namespace
-            tool_fn = globals().get(tool_name)
+            # Look up the MCP tool function from the ToolRegistry
+            tool_def = ToolRegistry.get(tool_name)
+            tool_fn = tool_def.handler if tool_def else None
 
             if tool_fn is None:
                 all_succeeded = False
@@ -1536,60 +1712,182 @@ def run_workflow(name: str) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════
-#  PROMPTS
+#  TOOL REGISTRY
 # ═══════════════════════════════════════════════════════════════
 
-
-@mcp.prompt()
-def use_computer() -> str:
-    """Exposes structured guidelines on how to control the computer effectively using UACC tools."""
-    return (
-        "You are an AI assistant with access to the computer's screen and input devices through UACC (Universal AI Computer Control) MCP tools. "
-        "Follow these guidelines to perform tasks reliably and safely:\n\n"
-        "1. **Observe Before Acting**: Always call `get_screen_info` at the start of a task to get a structured text map of UI elements. "
-        "If you need visual confirmation of the layout, call `screenshot`.\n"
-        "2. **Coordinate Alignment**: Clicking requires exact coordinates. Rely on the coordinates returned by `get_screen_info` or `find_element`. "
-        "If the coordinates are slightly off, UACC's built-in boundary clamping and auto-correction will assist, but try to target the center of the elements.\n"
-        "3. **Focus Active Window**: Before typing or sending key combinations, ensure the target window is focused. Use `launch_application` to start/open applications, "
-        "or `focus_window` to bring a running window to the foreground.\n"
-        "4. **Keyboard Input**: For text inputs, click the input field first, then call `type_text`. For shortcuts, use the `hotkey` tool (e.g. `['ctrl', 's']` to save).\n"
-        "5. **Validation & Verification**: After performing an action, call `get_screen_info` or take a `screenshot` of the target region to verify the action succeeded.\n"
-        "6. **Safe Mode**: Be aware that safe mode is enabled. Destructive actions (like deleting system files or formatting drives) will be blocked. Avoid executing dangerous operations."
-    )
+_TOOL_REGISTRY = {}
 
 
-@mcp.prompt()
-def troubleshoot_gui() -> str:
-    """Exposes guidelines for debugging and recovering from failed GUI automation steps."""
-    return (
-        "If a GUI interaction (clicking, typing, focusing, or launching) fails or does not yield the expected screen state, use this troubleshooting sequence:\n\n"
-        "1. **Check Window Focus**: Verify if the window is in the foreground. Call `list_windows` and check if the target window has `is_focused=True`. "
-        "If not, call `focus_window(title)` or `minimize_maximize_window(title, action='restore')` to restore it.\n"
-        "2. **Verify Coordinates**: If clicking on a coordinate did not trigger the expected behavior, the window may have resized or shifted. "
-        "Call `get_screen_info` to get the updated bounds of the target element.\n"
-        "3. **Detect Overlaps**: Another window might be covering the target element. Take a full `screenshot` to see if a popup, notification, "
-        "or background window is obstructing your view.\n"
-        "4. **Timing/Latency Issues**: Applications take time to load or respond. Introduce a small delay or retry the action. "
-        "Use `wait_for_element` to wait for a specific UI control to become visible before interacting with it.\n"
-        "5. **Clipboard Fallback**: If typing long strings of text fails or is too slow, write the text to the clipboard using `write_clipboard`, "
-        "click the input field, and trigger a paste hotkey (`['ctrl', 'v']` or `['command', 'v']`)."
-    )
+def _populate_tool_registry() -> None:
+    known_tools = [
+        "screenshot", "get_screen_info", "list_monitors",
+        "click", "type_text", "hotkey",
+        "scroll", "drag", "hover", "find_element", "get_active_window",
+        "list_windows", "focus_window", "resize_window", "move_window",
+        "minimize_maximize", "launch_app", "open_url", "execute_actions",
+        "clipboard_read", "clipboard_write", "get_mouse_position",
+        "wait_for_element", "click_element", "get_action_history",
+        "paint_preset", "paint_image", "create_workflow", "list_workflows",
+        "get_workflow", "delete_workflow", "run_workflow",
+        "start_task", "get_task_status", "cancel_task", "list_tasks",
+    ]
+    for name in known_tools:
+        fn = globals().get(name)
+        if fn is None:
+            logger.warning("Tool '%s' not found in module globals", name)
+            continue
+        _TOOL_REGISTRY[name] = fn
+        ToolRegistry.register(ToolDef(
+            name=name,
+            description=getattr(fn, "__doc__", "") or "",
+            handler=fn,
+        ))
+
+    logger.info("Tool registry populated: %d tools", len(_TOOL_REGISTRY))
 
 
-@mcp.prompt()
-def save_workflow() -> str:
-    """Exposes instructions on how to package and save multi-step GUI automation sequences as workflows."""
-    return (
-        "UACC supports saving multi-step automation flows as reusable workflows. This allows you and other agents to replay sequences "
-        "without needing to re-think or re-generate coordinates each time.\n\n"
-        "To build and save a workflow:\n"
-        "1. **Map the Steps**: Write down the sequence of tool calls needed (e.g. `launch_application`, `wait_for_element`, `click`, `type_text`).\n"
-        "2. **Standardize Inputs**: Use robust selectors (like `find_element` or relative coordinates) to define the actions.\n"
-        "3. **Call `create_workflow`**: Save the steps using `create_workflow`. Give it a clear, descriptive name (e.g. `search_github_issues`), "
-        "add a summary, and include tags like `['dev', 'browser']` to group it.\n"
-        "4. **Verify**: Test your workflow by calling `run_workflow` to ensure it replays successfully from start to finish."
-    )
 
+# ═══════════════════════════════════════════════════════════════
+#  TASK MANAGER (long-running operations)
+# ═══════════════════════════════════════════════════════════════
+
+_task_manager: TaskManager | None = None
+
+
+def _get_task_manager() -> TaskManager:
+    global _task_manager
+    if _task_manager is None:
+        _task_manager = TaskManager(max_concurrent=5)
+    return _task_manager
+
+
+@mcp.tool()
+def start_task(
+    name: str,
+    *,
+    action: str = "click",
+    params: str = "{}",
+    iterations: int = 1,
+) -> str:
+    """Start a background task that performs a repetitive UI action.
+
+    Non-blocking: the task runs in a background thread so you can continue
+    working while it executes. Poll progress with get_task_status, cancel
+    with cancel_task, or list all tasks with list_tasks.
+
+    Use cases:
+      - Clicking through a series of dialogs (iterations=N)
+      - Repeating a hotkey sequence
+      - Performing a long scroll operation
+      - Any multi-step action where you don't need to wait for each step
+
+    Args:
+        name: Human-readable name for the task (e.g. "Click 50 Save buttons").
+        action: The tool action to repeat (click, type_text, hotkey, scroll, etc.).
+        params: JSON string of parameters for the action (e.g. '{"x": 500, "y": 300}').
+        iterations: How many times to repeat the action (default: 1).
+
+    Returns:
+        JSON with task_id for status polling and cancellation.
+    """
+    try:
+        mgr = _get_task_manager()
+        parsed_params = json.loads(params)
+        executor = _get_executor()
+        from uacc.actions.schema import parse_action as _parse_action
+
+        def _run_action(cancel_flag: threading.Event) -> dict:
+            for i in range(iterations):
+                if cancel_flag.is_set():
+                    return {"cancelled": True, "completed": i}
+                # Build a proper Action from the action name + params
+                action_dict = {"action": action, **parsed_params}
+                action_obj = _parse_action(action_dict)
+                result = executor.execute(action_obj)
+                if not result.get("success", False):
+                    return {
+                        "completed": i,
+                        "error": result.get("message", f"Action '{action}' failed at iteration {i+1}"),
+                    }
+            return {"completed": iterations}
+
+        task_id = mgr.submit(name, _run_action)
+        return json.dumps({"success": True, "task_id": task_id, "name": name})
+
+    except Exception as exc:
+        return json.dumps({"success": False, "error": format_error(exc, "Start task failed")})
+
+
+@mcp.tool()
+def get_task_status(task_id: str) -> str:
+    """Poll the current status of a background task started with start_task.
+
+    Call this repeatedly to monitor progress. Returns the current state
+    (pending/running/completed/failed/cancelled), progress percentage,
+    and result data if the task has finished.
+
+    Args:
+        task_id: The task ID returned by start_task.
+
+    Returns:
+        JSON with status (pending/running/completed/failed/cancelled),
+        progress (0.0–1.0), progress_message, and result/error.
+    """
+    try:
+        mgr = _get_task_manager()
+        task = mgr.get_status(task_id)
+        if task is None:
+            return json.dumps({"success": False, "error": f"Task '{task_id}' not found"})
+        return json.dumps({"success": True, "task": task.to_dict()})
+    except Exception as exc:
+        return json.dumps({"success": False, "error": format_error(exc, "Get task status failed")})
+
+
+@mcp.tool()
+def cancel_task(task_id: str) -> str:
+    """Cancel a running or pending background task.
+
+    Gracefully stops the background thread and marks the task
+    as cancelled. Partial results are preserved.
+
+    Args:
+        task_id: The task ID returned by start_task.
+
+    Returns:
+        JSON with cancellation status and message.
+    """
+    try:
+        mgr = _get_task_manager()
+        cancelled = mgr.cancel(task_id)
+        return json.dumps({
+            "success": True,
+            "cancelled": cancelled,
+            "message": f"Task '{task_id}' cancelled" if cancelled else f"Task '{task_id}' not running",
+        })
+    except Exception as exc:
+        return json.dumps({"success": False, "error": format_error(exc, "Cancel task failed")})
+
+
+@mcp.tool()
+def list_tasks(status_filter: str = "") -> str:
+    """List all background tasks, optionally filtered by status.
+
+    Args:
+        status_filter: Optional filter: "pending", "running", "completed", "failed", "cancelled".
+
+    Returns:
+        JSON array of task summaries.
+    """
+    try:
+        mgr = _get_task_manager()
+        status_enum = TaskStatus(status_filter) if status_filter else None
+        tasks = mgr.list_tasks(status_filter=status_enum)
+        return json.dumps({"success": True, "tasks": tasks, "count": len(tasks)})
+    except Exception as exc:
+        return json.dumps({"success": False, "error": format_error(exc, "List tasks failed")})
+
+
+_populate_tool_registry()
 
 # ═══════════════════════════════════════════════════════════════
 #  ENTRY POINT
@@ -1607,6 +1905,19 @@ def main():
     """
     parser = argparse.ArgumentParser(
         description="UACC MCP Server — Universal AI Computer Control via MCP",
+        epilog="Examples:\n"
+               "  uacc-mcp                          # stdio (for Claude Desktop)\n"
+               "  uacc-mcp --transport sse --port 8765  # SSE transport\n"
+               "  uacc-mcp --transport streamable-http  # HTTP transport\n"
+               "  uacc-mcp --safe-mode false            # disable safe mode\n"
+               "  uacc-mcp --verbose                    # debug logging",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"UACC {uacc_version}",
+        help="Show version and exit",
     )
     parser.add_argument(
         "--transport",
@@ -1632,19 +1943,37 @@ def main():
         default="/mcp",
         help="URL path for streamable-http transport (default: /mcp)",
     )
+    parser.add_argument(
+        "--safe-mode",
+        type=str,
+        choices=["true", "false"],
+        default=None,
+        help="Override safe mode (true/false). Default: from UACC_SAFE_MODE env var.",
+    )
+    parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Enable debug-level logging",
+    )
     args = parser.parse_args()
 
+    # Apply safe-mode override
+    if args.safe_mode is not None:
+        config.uacc.safe_mode = args.safe_mode == "true"
+
     # Configure logging — always to stderr so stdout stays clean for stdio
+    log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(
-        level=logging.INFO,
+        level=log_level,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
         stream=sys.stderr,
     )
 
     logger.info(
-        "Starting UACC MCP server (transport=%s, safe_mode=%s)",
+        "Starting UACC MCP server (transport=%s, safe_mode=%s, verbose=%s)",
         args.transport,
         config.uacc.safe_mode,
+        args.verbose,
     )
 
     if args.transport == "sse":

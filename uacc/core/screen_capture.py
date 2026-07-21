@@ -89,6 +89,26 @@ def get_screen_size(monitor_index: int = 1) -> Tuple[int, int]:
     return mon["width"], mon["height"]
 
 
+def list_monitors() -> list[dict]:
+    """Return info about all connected monitors.
+
+    Index 0 is the virtual "all-in-one" union; indices 1+ are individual monitors.
+    """
+    sct = _get_sct()
+    monitors = []
+    for i, mon in enumerate(sct.monitors):
+        if i == 0:
+            continue  # Skip the virtual "combined" monitor
+        monitors.append({
+            "index": i,
+            "left": mon["left"],
+            "top": mon["top"],
+            "width": mon["width"],
+            "height": mon["height"],
+        })
+    return monitors
+
+
 def image_to_bytes(img: Image.Image, fmt: str = "PNG", quality: int = 85) -> bytes:
     """Serialise a PIL Image to bytes (useful for API calls)."""
     buf = io.BytesIO()

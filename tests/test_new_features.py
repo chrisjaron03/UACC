@@ -45,12 +45,78 @@ def test_launch_application(mock_popen):
     assert "Launched 'notepad'" in res["message"]
 
 
+@patch("subprocess.Popen")
+def test_launch_application_chrome_accessibility(mock_popen):
+    mock_proc = MagicMock()
+    mock_proc.pid = 8888
+    mock_popen.return_value = mock_proc
+
+    res = launch_application("chrome", wait_ms=0)
+    assert res["success"] is True
+    assert res["process_id"] == 8888
+    # Assert Popen was called with the accessibility flag
+    args = mock_popen.call_args[0][0]
+    assert "--force-renderer-accessibility" in args
+
+
+
+@patch("uacc.core.window_manager.launch_application")
 @patch("webbrowser.open")
-def test_open_url(mock_webbrowser_open):
+def test_open_url(mock_webbrowser_open, mock_launch_app):
+    mock_launch_app.return_value = {"success": False, "message": "Failed to launch"}
     res = open_url("google.com")
     assert res["success"] is True
     assert res["url"] == "https://google.com"
     mock_webbrowser_open.assert_called_once_with("https://google.com")
+
+
+@patch("uacc.core.window_manager.launch_application")
+@patch("webbrowser.open")
+def test_open_url_launches_chrome(mock_webbrowser_open, mock_launch_app):
+    mock_launch_app.return_value = {"success": True, "message": "Launched"}
+    res = open_url("google.com")
+    assert res["success"] is True
+    assert res["url"] == "https://google.com"
+    mock_launch_app.assert_called_with("chrome", arguments="https://google.com")
+    assert not mock_webbrowser_open.called
+
+
+def test_is_security_dialog_open_detected():
+    import sys
+    mock_win32gui = MagicMock()
+    mock_win32process = MagicMock()
+    mock_psutil = MagicMock()
+
+    # Pre-populate sys.modules with mock modules
+    sys.modules["win32gui"] = mock_win32gui
+    sys.modules["win32process"] = mock_win32process
+    sys.modules["psutil"] = mock_psutil
+
+    try:
+        from uacc.core.window_manager import is_security_dialog_open
+
+        # Mock EnumWindows to call the callback with fake HWND
+        def mock_enum(cb, param):
+            cb(5555, param)
+        mock_win32gui.EnumWindows.side_effect = mock_enum
+        mock_win32gui.IsWindowVisible.return_value = True
+        mock_win32gui.GetWindowText.return_value = "Windows Security"
+        mock_win32process.GetWindowThreadProcessId.return_value = (0, 1234)
+
+        mock_proc = MagicMock()
+        mock_proc.name.return_value = "credentialuibroker.exe"
+        mock_psutil.Process.return_value = mock_proc
+
+        with patch("sys.platform", "win32"):
+            msg = is_security_dialog_open()
+            assert msg is not None
+            assert "credentialuibroker" in msg
+
+    finally:
+        # Clean up sys.modules
+        sys.modules.pop("win32gui", None)
+        sys.modules.pop("win32process", None)
+        sys.modules.pop("psutil", None)
 
 
 # ── Clipboard Tests ──────────────────────────────────────────
@@ -171,6 +237,10 @@ def test_artistic_painter():
         os.remove(tmp_name)
 
 
+import pytest
+
+
+@pytest.mark.network
 def test_specialists():
     from uacc.agent.specialists import JobFinder, LongFormResearcher
 
@@ -184,3 +254,80 @@ def test_specialists():
     res_res = researcher.run_research("Quantum Computing", depth_levels=2)
     assert res_res["success"] is True
     assert "Deep Research" in res_res["report"]
+
+
+def test_resolve_chrome_profile():
+    from uacc.core.window_manager import resolve_chrome_profile
+    import tempfile
+    import json
+    import sys
+    import builtins
+    
+    # Create mock Local State content
+    mock_local_state = {
+        "profile": {
+            "info_cache": {
+                "Default": {
+                    "name": "Chris"
+                },
+                "Profile 2": {
+                    "name": "Chess"
+                },
+                "Profile 3": {
+                    "name": "Chris"
+                }
+            }
+        }
+    }
+    
+    real_open = builtins.open
+    with tempfile.NamedTemporaryFile(mode="w", suffix="Local State", delete=False) as tmp:
+        json.dump(mock_local_state, tmp)
+        tmp_name = tmp.name
+        
+    try:
+        # Patch paths to point to our mock file
+        with patch("pathlib.Path.exists", return_value=True), \
+             patch("builtins.open", side_effect=lambda *args, **kwargs: real_open(tmp_name, "r", encoding="utf-8")):
+            folder = resolve_chrome_profile("chrome", "chess")
+            assert folder == "Profile 2"
+            
+            folder_chris = resolve_chrome_profile("chrome", "chris")
+            assert folder_chris in ("Default", "Profile 3")
+    finally:
+        import os
+        os.remove(tmp_name)
+
+
+@patch("uacc.core.window_manager.resolve_chrome_profile")
+@patch("subprocess.Popen")
+def test_launch_application_profile_directory(mock_popen, mock_resolve):
+    mock_resolve.return_value = "Profile2"
+    mock_proc = MagicMock()
+    mock_proc.pid = 7777
+    mock_popen.return_value = mock_proc
+    
+    # Test mapping of --profile-name
+    res = launch_application("chrome", arguments='--profile-name="Chess" https://google.com', wait_ms=0)
+    assert res["success"] is True
+    args = mock_popen.call_args[0][0]
+    
+    # Verify `--profile-directory="Profile2"` is in args
+    assert any('--profile-directory="Profile2"' in arg for arg in args)
+    assert "--force-renderer-accessibility" in args
+    
+    # Test fallback when profile cannot be resolved
+    mock_resolve.return_value = None
+    res = launch_application("chrome", arguments='--profile-name="Unknown" https://google.com', wait_ms=0)
+    assert res["success"] is True
+    args2 = mock_popen.call_args[0][0]
+    assert not any('--profile-directory' in arg for arg in args2)
+    assert not any('--profile-name' in arg for arg in args2)
+
+
+@patch("uacc.core.window_manager.launch_application")
+def test_open_url_with_profile(mock_launch_app):
+    mock_launch_app.return_value = {"success": True, "message": "Launched"}
+    res = open_url("google.com", profile_name="Chris")
+    assert res["success"] is True
+    mock_launch_app.assert_called_with("chrome", arguments='--profile-name="Chris" https://google.com')

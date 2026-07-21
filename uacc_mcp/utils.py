@@ -8,6 +8,7 @@ import base64
 import io
 import logging
 import time
+import traceback
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -161,8 +162,16 @@ def get_session() -> SessionState:
 # ── Error Formatting ─────────────────────────────────────────
 
 
+_error_logger = logging.getLogger("uacc_mcp.error")
+
+
 def format_error(error: Exception, context: str = "") -> str:
-    """Format an exception into a clean error message for MCP responses."""
+    """Format an exception into a clean error message for MCP responses.
+
+    Logs the error with traceback for debugging, returns a user-friendly string.
+    """
+    tb = traceback.format_exc(limit=3)
+    _error_logger.error("%s: %s\n%s", context or "Error", error, tb)
     msg = f"Error: {type(error).__name__}: {error}"
     if context:
         msg = f"{context} — {msg}"

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uacc"
-version = "0.2.0"
+version = "1.0.0"
 description = "Universal AI Computer Control — Let any LLM control a computer with pixel-precise UI interactions"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -12,15 +12,23 @@ license = "MIT"
 authors = [
     {name = "UACC Contributors", email = "chrisjaron99@gmail.com"}
 ]
-keywords = ["mcp", "computer-control", "ai-agent", "ui-automation", "desktop-automation"]
+keywords = [
+    "mcp", "computer-control", "ai-agent", "ui-automation",
+    "desktop-automation", "model-context-protocol", "llm-tools"
+]
 classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Operating System :: Microsoft :: Windows",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: System :: Emulation",
 ]
 
 dependencies = [
@@ -40,17 +48,27 @@ dependencies = [
     "psutil>=5.9.0",
     "fastapi>=0.100.0",
     "uvicorn>=0.22.0",
+    "torch ; sys_platform == 'win32'",
+    "pydantic>=2.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/uacc-project/uacc"
 Repository = "https://github.com/uacc-project/uacc"
+Documentation = "https://github.com/uacc-project/uacc#readme"
+Changelog = "https://github.com/uacc-project/uacc/blob/main/CHANGELOG.md"
+Issues = "https://github.com/uacc-project/uacc/issues"
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "ruff>=0.1",
+]
+web = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.22.0",
+    "jinja2>=3.0",
 ]
 
 [project.scripts]
@@ -64,6 +82,25 @@ include = ["uacc*", "uacc_mcp*"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+extend-exclude = [
+    "uacc/web/static/*",
+    "dist/*",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "network: tests that require network access (skipped by default)",
+]
+filterwarnings = [
+    "ignore::UserWarning",
+    "ignore::FutureWarning",
+]
+addopts = "-m 'not network'"
+
+[tool.coverage.run]
+source = ["uacc", "uacc_mcp"]
+omit = ["*/tests/*", "*/examples/*"]

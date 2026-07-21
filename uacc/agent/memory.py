@@ -1,16 +1,27 @@
 """
 Session Memory — track visited screens, learned shortcuts, element positions,
-and action history for intelligent decision-making across turns.
+action history, and episodic reflections across sessions.
+
+Episodic memory is persisted to disk (~/.uacc/episodes/) so the agent can
+learn from past successes and failures — even across restarts.
 """
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 import time
-from dataclasses import dataclass
+import uuid
+from dataclasses import dataclass, field, asdict
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
+
+_EPISODE_DIR = Path.home() / ".uacc" / "episodes"
+_MAX_EPISODES = 50  # keep the 50 most recent episodes
 
 
 @dataclass
@@ -57,6 +68,35 @@ class LearnedShortcut:
     times_used: int = 0
 
 
+@dataclass
+class FailureReflection:
+    """Structured reflection about a failure episode for cross-session learning."""
+
+    task_goal: str
+    failed_action: str
+    failed_coords: tuple = (0, 0)
+    expected_outcome: str = ""
+    actual_outcome: str = ""
+    root_cause: str = ""
+    suggested_fix: str = ""
+    timestamp: float = 0.0
+    resolved: bool = False
+
+
+@dataclass
+class Episode:
+    """A complete task episode — goal, actions, outcome, reflections."""
+
+    episode_id: str
+    goal: str
+    created_at: str
+    actions: List[Dict[str, Any]] = field(default_factory=list)
+    success: bool = False
+    total_iterations: int = 0
+    reflections: List[Dict[str, Any]] = field(default_factory=list)
+    shortcuts_used: List[str] = field(default_factory=list)
+
+
 class SessionMemory:
     """Persistent memory across an agent session (one task run).
 
@@ -65,6 +105,7 @@ class SessionMemory:
     - Visited screens (where we've been)
     - Element cache (last known positions)
     - Learned shortcuts (discovered faster methods)
+    - Episodic reflections (failure analysis, persisted across sessions)
     """
 
     def __init__(self, max_history: int = 100, max_cache: int = 500):
@@ -76,6 +117,12 @@ class SessionMemory:
         self.element_cache: Dict[str, CachedElement] = {}
         self.learned_shortcuts: Dict[str, LearnedShortcut] = {}
         self._start_time = time.time()
+
+        # Episodic memory (cross-session)
+        self._episode_id = str(uuid.uuid4())[:8]
+        self._current_goal: str = ""
+        self.reflections: List[FailureReflection] = []
+        self._load_episodes()
 
     # ── Action History ───────────────────────────────────────
 
@@ -229,10 +276,134 @@ class SessionMemory:
         successes = sum(1 for a in self.action_history if a.get("success", False))
         return round(successes / len(self.action_history), 3)
 
+    def set_goal(self, goal: str) -> None:
+        """Set the current task goal (used for episode recording)."""
+        self._current_goal = goal
+
+    # ── Episodic Memory (cross-session persistence) ─────────
+
+    def record_reflection(self, reflection: FailureReflection) -> None:
+        """Record a failure reflection for cross-session learning."""
+        if reflection.timestamp == 0.0:
+            reflection.timestamp = time.time()
+        self.reflections.append(reflection)
+        logger.info("Recorded reflection: %s — %s", reflection.failed_action, reflection.root_cause[:60])
+
+    def get_reflections(
+        self,
+        task_goal: str = "",
+        max_results: int = 5,
+    ) -> List[FailureReflection]:
+        """Retrieve relevant past reflections for the current task.
+
+        Matches by keyword overlap between the current goal and past task goals.
+        """
+        if not task_goal:
+            return self.reflections[-max_results:]
+
+        goal_words = set(task_goal.lower().split())
+        scored = []
+        for ref in self.reflections:
+            ref_words = set(ref.task_goal.lower().split())
+            overlap = len(goal_words & ref_words)
+            scored.append((overlap, ref))
+
+        scored.sort(key=lambda x: -x[0])
+        return [ref for _, ref in scored[:max_results]]
+
+    def save_episode(self) -> None:
+        """Persist the current episode to disk for cross-session learning."""
+        if not self.action_history:
+            return
+
+        os.makedirs(_EPISODE_DIR, exist_ok=True)
+
+        episode = Episode(
+            episode_id=self._episode_id,
+            goal=self._current_goal,
+            created_at=datetime.now(timezone.utc).isoformat(),
+            actions=self.action_history[-50:],
+            success=self._compute_success_rate() > 0.5,
+            total_iterations=len(self.action_history),
+            reflections=[
+                {
+                    "failed_action": r.failed_action,
+                    "expected_outcome": r.expected_outcome,
+                    "actual_outcome": r.actual_outcome,
+                    "root_cause": r.root_cause,
+                    "suggested_fix": r.suggested_fix,
+                    "task_goal": r.task_goal,
+                }
+                for r in self.reflections
+            ],
+            shortcuts_used=list(self.learned_shortcuts.keys()),
+        )
+
+        path = _EPISODE_DIR / f"{self._episode_id}.json"
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(asdict(episode), f, indent=2, ensure_ascii=False)
+
+        logger.info("Episode saved: %s (%d actions)", path.name, len(self.action_history))
+
+        # Trim old episodes
+        self._trim_episodes()
+
+    def _load_episodes(self) -> None:
+        """Load past episodes and extract reflections for cross-session learning."""
+        if not _EPISODE_DIR.exists():
+            return
+
+        for path in sorted(_EPISODE_DIR.glob("*.json"), reverse=True):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                for r in data.get("reflections", []):
+                    if r.get("root_cause") and not r.get("resolved", False):
+                        self.reflections.append(FailureReflection(
+                            task_goal=r.get("task_goal", ""),
+                            failed_action=r.get("failed_action", ""),
+                            expected_outcome=r.get("expected_outcome", ""),
+                            actual_outcome=r.get("actual_outcome", ""),
+                            root_cause=r.get("root_cause", ""),
+                            suggested_fix=r.get("suggested_fix", ""),
+                            timestamp=r.get("timestamp", 0.0),
+                            resolved=r.get("resolved", False),
+                        ))
+            except Exception as exc:
+                logger.debug("Could not load episode %s: %s", path.name, exc)
+
+        logger.info(
+            "Loaded %d unresolved reflections from %d past episodes",
+            len(self.reflections),
+            len(list(_EPISODE_DIR.glob("*.json"))),
+        )
+
+    @staticmethod
+    def _trim_episodes() -> None:
+        """Keep only the _MAX_EPISODES most recent episode files."""
+        if not _EPISODE_DIR.exists():
+            return
+        files = sorted(_EPISODE_DIR.glob("*.json"), reverse=True)
+        for path in files[_MAX_EPISODES:]:
+            try:
+                path.unlink()
+                logger.debug("Trimmed old episode: %s", path.name)
+            except OSError:
+                pass
+
+    # ── Reset ─────────────────────────────────────────────────
+
     def reset(self) -> None:
         """Clear all memory for a fresh session."""
+        # Persist current episode before clearing
+        self.save_episode()
+
         self.action_history.clear()
         self.visited_screens.clear()
         self.element_cache.clear()
         self.learned_shortcuts.clear()
         self._start_time = time.time()
+        self._episode_id = str(uuid.uuid4())[:8]
+
+        # Keep reflections loaded from disk (cross-session)
+        # They persist across resets for continuous learning

@@ -32,7 +32,11 @@ class VerificationResult:
 
 class ActionVerifier:
     """Verifies that actions are targeting the right elements and
-    producing the expected screen changes."""
+    producing the expected screen changes.
+
+    Combines pixel-level diffing with semantic checks (window title,
+    text map content, element counts) for more reliable verification.
+    """
 
     def __init__(
         self,
@@ -46,10 +50,19 @@ class ActionVerifier:
         self.post_wait_ms = post_wait_ms
         self.max_retries = max_retries
         self._last_screenshot: Optional[Image.Image] = None
+        self._last_text_map: Optional[str] = None
+        self._last_window_title: str = ""
 
-    def capture_before(self) -> Image.Image:
-        """Capture a screenshot before an action (for post-action diffing)."""
+    def capture_before(self, text_map: Optional[str] = None, window_title: str = "") -> Image.Image:
+        """Capture a screenshot before an action (for post-action diffing).
+
+        Args:
+            text_map: Compact text map of the screen before the action.
+            window_title: Active window title before the action.
+        """
         self._last_screenshot = capture_full()
+        self._last_text_map = text_map
+        self._last_window_title = window_title
         return self._last_screenshot
 
     def pre_verify(
@@ -133,12 +146,19 @@ class ActionVerifier:
         self,
         action: Action,
         expected_change: bool = True,
+        text_map: Optional[str] = None,
+        window_title: str = "",
     ) -> VerificationResult:
-        """Verify that the action produced a screen change.
+        """Verify that the action produced a screen change — pixel + semantic.
+
+        Uses both pixel-level diffing and semantic checks (window title,
+        text map content, element counts) for robust verification.
 
         Args:
             action: The action that was just executed.
             expected_change: Whether we expect the screen to have changed.
+            text_map: Text map after the action (for semantic diff).
+            window_title: Window title after the action.
 
         Returns:
             VerificationResult with diff information.
@@ -150,15 +170,21 @@ class ActionVerifier:
         time.sleep(self.post_wait_ms / 1000)
 
         after = capture_full()
-        diff = compute_diff(self._last_screenshot, after)
+        diff = compute_diff(
+            self._last_screenshot,
+            after,
+            before_text_map=self._last_text_map,
+            after_text_map=text_map,
+            before_window_title=self._last_window_title,
+            after_window_title=window_title,
+        )
 
         if expected_change:
             if diff.changed:
-                return VerificationResult(
-                    passed=True,
-                    message=f"Screen changed as expected ({diff.changed_percentage:.1f}%)",
-                    diff=diff,
-                )
+                msg = f"Screen changed (pixel: {diff.changed_percentage:.1f}%)"
+                if diff.semantic and diff.semantic.changed:
+                    msg += f" | semantic: {diff.semantic.summary}"
+                return VerificationResult(passed=True, message=msg, diff=diff)
             else:
                 return VerificationResult(
                     passed=False,
