@@ -110,8 +110,21 @@ _EDITABLE_TYPES = {"Edit", "Document", "ComboBox"}
 _EXPANDABLE_TYPES = {"TreeItem", "MenuItem", "ComboBox", "SplitButton"}
 
 
-def _wrap_element(ctrl: Any, depth: int = 0, max_depth: int = 8) -> Optional[UIElement]:
+_MAX_TOTAL_ELEMENTS: int = 250
+_BROWSER_KEYWORDS = {"chrome", "edge", "firefox", "brave", "opera", "vivaldi", "browser", "msedge"}
+
+
+def _wrap_element(
+    ctrl: Any,
+    depth: int = 0,
+    max_depth: int = 8,
+    is_browser: bool = False,
+) -> Optional[UIElement]:
     """Recursively wrap a pywinauto control into a UIElement."""
+    global _element_counter
+    if _element_counter >= _MAX_TOTAL_ELEMENTS:
+        return None
+
     try:
         rect = ctrl.rectangle()
         # Skip zero-size / off-screen elements
@@ -165,14 +178,25 @@ def _wrap_element(ctrl: Any, depth: int = 0, max_depth: int = 8) -> Optional[UIE
             except Exception:
                 pass
 
-        # Recurse into children (with depth limit)
-        if depth < max_depth:
+        # Limit recursion depth for browsers to prevent crawling tens of thousands of web DOM elements
+        effective_max_depth = min(max_depth, 4) if is_browser else max_depth
+
+        # Recurse into children (with depth limit and element cap)
+        if depth < effective_max_depth:
             try:
                 ch_list = ctrl.children()
-                if len(ch_list) > 150:
-                    ch_list = ch_list[:150]
+                max_ch = 40 if is_browser else 150
+                if len(ch_list) > max_ch:
+                    ch_list = ch_list[:max_ch]
                 for child_ctrl in ch_list:
-                    child = _wrap_element(child_ctrl, depth + 1, max_depth)
+                    if _element_counter >= _MAX_TOTAL_ELEMENTS:
+                        break
+                    child = _wrap_element(
+                        child_ctrl,
+                        depth=depth + 1,
+                        max_depth=effective_max_depth,
+                        is_browser=is_browser,
+                    )
                     if child is not None:
                         elem.children.append(child)
             except Exception:
@@ -222,7 +246,14 @@ def get_ui_tree(window_title: Optional[str] = None, max_depth: int = 8) -> List[
 
     elements: List[UIElement] = []
     for win in windows:
-        elem = _wrap_element(win, depth=0, max_depth=max_depth)
+        win_title = ""
+        try:
+            win_title = win.window_text().lower()
+        except Exception:
+            pass
+
+        is_browser = any(b in win_title for b in _BROWSER_KEYWORDS)
+        elem = _wrap_element(win, depth=0, max_depth=max_depth, is_browser=is_browser)
         if elem is not None:
             elements.append(elem)
 

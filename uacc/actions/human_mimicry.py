@@ -20,9 +20,9 @@ import pyautogui
 def move_mouse_human(
     start: Tuple[int, int],
     end: Tuple[int, int],
-    duration_ms: int = 300,
+    duration_ms: int = 120,
     steps: int = 0,
-    jitter: int = 3,
+    jitter: int = 2,
 ) -> None:
     """Move the mouse along a Bézier curve with slight randomness.
 
@@ -43,12 +43,12 @@ def move_mouse_human(
         return
 
     if steps == 0:
-        # ~1 step per 8 pixels, minimum 10, max 80
-        steps = max(10, min(80, int(dist / 8)))
+        # ~1 step per 30 pixels, minimum 5, max 20 for fast responsive mouse curves
+        steps = max(5, min(20, int(dist / 30)))
 
     # Generate 1–2 random control points for a quadratic/cubic Bézier
-    cp1 = _random_control_point(sx, sy, ex, ey, spread=0.3)
-    cp2 = _random_control_point(sx, sy, ex, ey, spread=0.2)
+    cp1 = _random_control_point(sx, sy, ex, ey, spread=0.2)
+    cp2 = _random_control_point(sx, sy, ex, ey, spread=0.15)
 
     step_delay = (duration_ms / 1000) / steps
 
@@ -116,9 +116,9 @@ def _ease_in_out(t: float) -> float:
 
 # Approximate typing speed profiles (WPM → ms per character)
 SPEED_PROFILES = {
-    "slow": (150, 300),      # 30-40 WPM
-    "normal": (60, 150),     # 60-80 WPM
-    "fast": (30, 80),        # 100-120 WPM
+    "slow": (80, 150),       # 40-60 WPM
+    "normal": (25, 60),      # 80-120 WPM
+    "fast": (10, 25),        # 150+ WPM
 }
 
 

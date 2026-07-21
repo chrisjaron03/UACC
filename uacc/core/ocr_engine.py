@@ -89,6 +89,7 @@ def extract_text(
     confidence_threshold: float = 0.3,
     merge_close: bool = True,
     merge_distance: int = 10,
+    max_dimension: int = 1280,
 ) -> List[OCRResult]:
     """Run OCR on a PIL Image and return detected text with positions.
 
@@ -97,18 +98,30 @@ def extract_text(
         confidence_threshold: Minimum confidence to keep a detection.
         merge_close: If True, merge detections that are spatially close.
         merge_distance: Pixel distance threshold for merging.
+        max_dimension: Max width/height for OCR inference downscaling (speeds up CPU OCR).
 
     Returns:
         List of OCRResult sorted top-to-bottom, left-to-right.
     """
     reader = _get_reader()
-    img_array = np.array(image)
+
+    orig_w, orig_h = image.size
+    scale = 1.0
+    if max(orig_w, orig_h) > max_dimension:
+        scale = max_dimension / float(max(orig_w, orig_h))
+        new_w, new_h = int(orig_w * scale), int(orig_h * scale)
+        ocr_image = image.resize((new_w, new_h), Image.Resampling.BILINEAR)
+    else:
+        ocr_image = image
+
+    img_array = np.array(ocr_image)
 
     # EasyOCR returns: list of (bbox, text, confidence)
-    # bbox is [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]  (four corners)
     raw_results = reader.readtext(img_array)  # type: ignore[union-attr]
 
     results: List[OCRResult] = []
+    inv_scale = 1.0 / scale if scale != 1.0 else 1.0
+
     for bbox, text, conf in raw_results:
         if conf < confidence_threshold:
             continue
@@ -117,9 +130,9 @@ def extract_text(
         if not text:
             continue
 
-        # Convert 4-corner bbox to (left, top, right, bottom)
-        xs = [p[0] for p in bbox]
-        ys = [p[1] for p in bbox]
+        # Convert 4-corner bbox to (left, top, right, bottom) and rescale coordinates
+        xs = [p[0] * inv_scale for p in bbox]
+        ys = [p[1] * inv_scale for p in bbox]
         left, top = int(min(xs)), int(min(ys))
         right, bottom = int(max(xs)), int(max(ys))
         cx = (left + right) // 2
@@ -140,7 +153,7 @@ def extract_text(
     if merge_close:
         results = _merge_nearby(results, merge_distance)
 
-    logger.info("OCR found %d text regions", len(results))
+    logger.info("OCR found %d text regions (scale=%.2f)", len(results), scale)
     return results
 
 
