@@ -5,6 +5,30 @@ All notable changes to UACC will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] — 2026-07-21
+
+### Added
+
+- **App Adapters** — Specialized adapters for Notepad, browser, and common Windows apps
+- **Safety Gates** — Enhanced safety layer with configurable destructive action filtering
+- **Agent Controller** — Production-grade Observe → Think → Act → Verify loop with session memory
+- **Clipboard Utilities** — Cross-platform clipboard read/write support
+- **Window Management** — Windows-specific window services (move, resize, focus, enumerate)
+- **CI/CD Pipeline** — GitHub Actions workflows for testing, linting, and publishing
+- **AGENTS.md / CLAUDE.md** — Agent configuration files for AI-assisted development
+
+### Changed
+
+- Version bump to 1.0.0 (stable release)
+- MCP server now uses `mcp[cli]>=1.0` with proper lifecycle management
+- Improved error handling and recovery across all modules
+- Enhanced documentation with integration guides
+
+### Fixed
+
+- `pyproject.toml` metadata corrected for PyPI publishing compatibility
+- Various stability improvements across screen capture and input automation
+
 ## [0.2.0] — 2026-07-18
 
 ### Added
