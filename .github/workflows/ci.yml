@@ -63,7 +63,7 @@ jobs:
         run: python -m pytest tests/ -v --cov=uacc --cov=uacc_mcp --cov-report=xml -m 'not network'
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           file: ./coverage.xml
           fail_ci_if_error: false
