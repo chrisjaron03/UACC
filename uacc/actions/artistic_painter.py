@@ -14,6 +14,7 @@ from PIL import Image, ImageFilter, ImageOps
 
 from uacc.actions.schema import ClickAction, DragAction, MouseButton
 from uacc.actions.executor import ActionExecutor
+from uacc.safety.mouse_sentinel import MouseSentinel
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +23,13 @@ class ArtisticPainter:
     """Converts images or geometric presets into vector stroke paths and paints
     them in Microsoft Paint using the UACC ActionExecutor."""
 
-    def __init__(self, executor: Optional[ActionExecutor] = None):
+    def __init__(
+        self,
+        executor: Optional[ActionExecutor] = None,
+        sentinel: Optional[MouseSentinel] = None,
+    ):
         self.executor = executor or ActionExecutor(human_mimicry=False, action_delay_ms=0)
+        self.sentinel = sentinel
         import pyautogui
         self._orig_pause = pyautogui.PAUSE
         self._orig_failsafe = pyautogui.FAILSAFE
@@ -534,26 +540,28 @@ class ArtisticPainter:
         self.executor.execute(ClickAction(x=170, y=105, button=MouseButton.LEFT, reasoning="Select Pencil tool"))
 
         success_count = 0
-        CHECK_INTERVAL = 15  # check for user intervention every N strokes
 
         try:
             for idx, action in enumerate(strokes, 1):
-                # Safety check — only every CHECK_INTERVAL strokes
-                if idx % CHECK_INTERVAL == 0:
+                # Safety check — verify sentinel killed status
+                if self.sentinel and self.sentinel.check_killed():
+                    logger.warning("User override detected via MouseSentinel at stroke %d/%d", idx, total)
                     try:
-                        cur_pos = pyautogui.position()
-                        if abs(cur_pos.x - action.start_x) > 300 or abs(cur_pos.y - action.start_y) > 300:
-                            logger.warning("User intervention detected at stroke %d/%d", idx, total)
-                            return {
-                                "success": False,
-                                "message": f"Drawing halted: user intervention",
-                                "completed_strokes": idx - 1,
-                                "total_strokes": total,
-                            }
+                        pyautogui.mouseUp()
                     except Exception:
                         pass
+                    return {
+                        "success": False,
+                        "message": "Drawing halted: user override detected (mouse moved/dragged)",
+                        "killed": True,
+                        "completed_strokes": idx - 1,
+                        "total_strokes": total,
+                    }
 
                 # Each stroke is self-contained: position → press → wait → drag → release
+                if self.sentinel:
+                    self.sentinel.set_moving(True)
+
                 pyautogui.moveTo(action.start_x, action.start_y, duration=0.01)
                 pyautogui.mouseDown(button=action.button.value)
                 time.sleep(0.03)  # let Paint register the button press before dragging
@@ -561,12 +569,19 @@ class ArtisticPainter:
                 pyautogui.moveTo(action.end_x, action.end_y, duration=seg_duration)
                 pyautogui.mouseUp(button=action.button.value)
                 success_count += 1
+                last_expected_pos = (action.end_x, action.end_y)
+
+                if self.sentinel:
+                    self.sentinel.set_expected_position(action.end_x, action.end_y)
+                    self.sentinel.set_moving(False)
 
         except Exception as exc:
             try:
                 pyautogui.mouseUp()
             except Exception:
                 pass
+            if self.sentinel:
+                self.sentinel.set_moving(False)
             logger.error("Drawing aborted by exception: %s", exc)
             return {
                 "success": False,
