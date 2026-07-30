@@ -28,12 +28,13 @@ _SAFETY_LOG_DIR = os.path.expanduser("~/.uacc/safety_logs")
 class MouseSentinel:
     """Background thread monitoring mouse position for user override detection."""
 
-    def __init__(self, kill_distance_px: int = 150):
+    def __init__(self, kill_distance_px: int = 40):
         self._kill_distance = kill_distance_px
         self._expected_pos: tuple[int, int] | None = None
         self._killed = False
         self._active = False
         self._running = False
+        self._is_moving = False
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
         self._last_uacc_call: float = 0.0
@@ -89,6 +90,13 @@ class MouseSentinel:
             self._last_uacc_call = time.time()
         logger.debug("Expected position set to (%d, %d)", x, y)
 
+    def set_moving(self, moving: bool) -> None:
+        """Mark whether UACC is currently in the middle of executing a mouse movement."""
+        with self._lock:
+            self._is_moving = moving
+            if moving:
+                self._last_uacc_call = time.time()
+
     def check_killed(self) -> bool:
         with self._lock:
             if self._killed:
@@ -102,6 +110,10 @@ class MouseSentinel:
         with self._lock:
             self._killed = False
         logger.info("Override acknowledged, kill flag reset")
+
+    def get_kill_distance(self) -> int:
+        with self._lock:
+            return self._kill_distance
 
     def set_kill_distance(self, px: int) -> None:
         if px <= 0:
@@ -119,9 +131,9 @@ class MouseSentinel:
             import ctypes
             user32 = ctypes.windll.user32
             dpi = user32.GetDpiForSystem()
-            return max(150, dpi)
+            return max(30, int(dpi * 0.25))
         except Exception:
-            return 150
+            return 40
 
     def _log_override(self, distance: int, threshold: int) -> None:
         try:
@@ -151,7 +163,8 @@ class MouseSentinel:
                 with self._lock:
                     killed = self._killed
                     expected = self._expected_pos
-                if not killed and expected is not None:
+                    is_moving = self._is_moving
+                if not killed and expected is not None and not is_moving:
                     cursor = self._get_cursor()
                     if cursor is not None:
                         cx, cy = cursor
@@ -161,6 +174,7 @@ class MouseSentinel:
                         if distance > self._kill_distance:
                             with self._lock:
                                 self._killed = True
+                                self._last_uacc_call = time.time()
                             logger.warning(
                                 "User override detected: mouse moved %dpx (threshold: %dpx)",
                                 round(distance), self._kill_distance,

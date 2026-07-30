@@ -132,6 +132,7 @@ def _get_executor() -> ActionExecutor:
         _executor = ActionExecutor(
             human_mimicry=config.uacc.human_mimicry,
             safe_mode=config.uacc.safe_mode,
+            sentinel=_get_sentinel(),
         )
     return _executor
 
@@ -1492,7 +1493,7 @@ def paint_preset(preset_name: str) -> str:
         cy = max(300, int(screen_h * 0.55))  # Shifted down to clear top ribbon
 
         # 3. Instantiate painter and draw
-        painter = ArtisticPainter()
+        painter = ArtisticPainter(executor=_get_executor(), sentinel=_get_sentinel())
         try:
             result = painter.draw_preset(preset_name, (cx, cy))
         finally:

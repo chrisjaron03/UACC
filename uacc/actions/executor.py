@@ -47,6 +47,7 @@ class ActionExecutor:
         human_mimicry: Optional[bool] = None,
         action_delay_ms: Optional[int] = None,
         safe_mode: Optional[bool] = None,
+        sentinel: Optional[Any] = None,
     ):
         self.human_mimicry = (
             human_mimicry if human_mimicry is not None else config.uacc.human_mimicry
@@ -55,6 +56,7 @@ class ActionExecutor:
             action_delay_ms if action_delay_ms is not None else config.uacc.action_delay_ms
         )
         self.safe_mode = safe_mode if safe_mode is not None else config.uacc.safe_mode
+        self.sentinel = sentinel
         self._last_action_time = 0.0
 
     def execute(self, action: Action) -> dict:
@@ -63,6 +65,16 @@ class ActionExecutor:
         Returns:
             {"success": bool, "message": str, "action": str}
         """
+        # User override sentinel check
+        if self.sentinel and self.sentinel.check_killed():
+            logger.warning("Action blocked by user override sentinel kill flag")
+            return {
+                "success": False,
+                "message": "Action blocked: User override detected (mouse moved/dragged)",
+                "killed": True,
+                "action": getattr(action, "action", "unknown"),
+            }
+
         # Safety check
         if self.safe_mode and is_potentially_destructive(action):
             logger.warning("Destructive action detected: %s", action)
@@ -130,28 +142,37 @@ class ActionExecutor:
 
     def _click(self, action: ClickAction) -> dict:
         """Execute a click action."""
-        # Move to position
-        if self.human_mimicry:
-            current = pyautogui.position()
-            move_mouse_human(current, (action.x, action.y))
-        else:
-            pyautogui.moveTo(action.x, action.y, duration=0.1)
+        if self.sentinel:
+            self.sentinel.set_moving(True)
+        try:
+            # Move to position
+            if self.human_mimicry:
+                current = pyautogui.position()
+                move_mouse_human(current, (action.x, action.y))
+            else:
+                pyautogui.moveTo(action.x, action.y, duration=0.1)
 
-        # Apply modifiers
-        for mod in action.modifiers:
-            pyautogui.keyDown(mod)
+            # Apply modifiers
+            for mod in action.modifiers:
+                pyautogui.keyDown(mod)
 
-        # Click
-        button = action.button.value
-        if action.count == 2:
-            pyautogui.doubleClick(action.x, action.y, button=button)
-        else:
-            for _ in range(action.count):
-                pyautogui.click(action.x, action.y, button=button)
+            # Click
+            button = action.button.value
+            if action.count == 2:
+                pyautogui.doubleClick(action.x, action.y, button=button)
+            else:
+                for _ in range(action.count):
+                    pyautogui.click(action.x, action.y, button=button)
 
-        # Release modifiers
-        for mod in reversed(action.modifiers):
-            pyautogui.keyUp(mod)
+            # Release modifiers
+            for mod in reversed(action.modifiers):
+                pyautogui.keyUp(mod)
+
+            if self.sentinel:
+                self.sentinel.set_expected_position(action.x, action.y)
+        finally:
+            if self.sentinel:
+                self.sentinel.set_moving(False)
 
         logger.info(
             "Click: (%d, %d) button=%s count=%d", action.x, action.y, button, action.count
@@ -164,24 +185,33 @@ class ActionExecutor:
 
     def _drag(self, action: DragAction) -> dict:
         """Execute a drag action with smooth movement."""
-        if self.human_mimicry:
-            current = pyautogui.position()
-            move_mouse_human(current, (action.start_x, action.start_y))
+        if self.sentinel:
+            self.sentinel.set_moving(True)
+        try:
+            if self.human_mimicry:
+                current = pyautogui.position()
+                move_mouse_human(current, (action.start_x, action.start_y))
 
-        duration = action.duration_ms / 1000
-        pyautogui.moveTo(action.start_x, action.start_y, duration=0.1)
-        pyautogui.mouseDown(button=action.button.value)
+            duration = action.duration_ms / 1000
+            pyautogui.moveTo(action.start_x, action.start_y, duration=0.1)
+            pyautogui.mouseDown(button=action.button.value)
 
-        if self.human_mimicry:
-            move_mouse_human(
-                (action.start_x, action.start_y),
-                (action.end_x, action.end_y),
-                duration_ms=action.duration_ms,
-            )
-        else:
-            pyautogui.moveTo(action.end_x, action.end_y, duration=duration)
+            if self.human_mimicry:
+                move_mouse_human(
+                    (action.start_x, action.start_y),
+                    (action.end_x, action.end_y),
+                    duration_ms=action.duration_ms,
+                )
+            else:
+                pyautogui.moveTo(action.end_x, action.end_y, duration=duration)
 
-        pyautogui.mouseUp(button=action.button.value)
+            pyautogui.mouseUp(button=action.button.value)
+
+            if self.sentinel:
+                self.sentinel.set_expected_position(action.end_x, action.end_y)
+        finally:
+            if self.sentinel:
+                self.sentinel.set_moving(False)
 
         logger.info(
             "Drag: (%d,%d) → (%d,%d)",

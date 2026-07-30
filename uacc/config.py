@@ -85,6 +85,9 @@ class UACCConfig:
     safety_ask_confirmation: bool = field(
         default_factory=lambda: os.getenv("UACC_SAFETY_ASK_CONFIRMATION", "true").lower() == "true"
     )
+    kill_distance: int = field(
+        default_factory=lambda: int(os.getenv("UACC_KILL_DISTANCE", "40"))
+    )
 
     # Grid dimensions for each mode  (columns × rows)
     GRID_SIZES: dict = field(
