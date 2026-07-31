@@ -65,7 +65,7 @@ class ArtisticPainter:
         self,
         image_path: str,
         canvas_bounds: Tuple[int, int, int, int],  # (left, top, right, bottom)
-        max_strokes: int = 150,
+        max_strokes: int = 1500,
         edge_threshold: int = 100,
     ) -> Dict[str, Any]:
         """Load an image, extract its outline contours, and paint it on screen.
