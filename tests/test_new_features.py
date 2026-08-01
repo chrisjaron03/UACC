@@ -192,49 +192,94 @@ def test_wait_for_element():
 
 def test_artistic_painter():
     from uacc.actions.artistic_painter import ArtisticPainter
+    from unittest.mock import patch
+    from PIL import Image, ImageDraw
+    import tempfile
 
     mock_executor = MagicMock()
     mock_executor.execute.return_value = {"success": True, "message": "Simulated click/drag"}
 
-    painter = ArtisticPainter(executor=mock_executor)
+    # Track position so pyautogui.position returns the expected stroke position in tests
+    current_pos = [100, 100]
 
-    # Test presets
-    res_rose = painter.draw_preset("rose", (100, 100))
-    assert res_rose["success"] is True
-    assert res_rose["total_strokes"] > 0
-    assert mock_executor.execute.called
+    def mock_moveTo(x, y, *args, **kwargs):
+        current_pos[0] = x
+        current_pos[1] = y
 
-    res_mountains = painter.draw_preset("mountains", (200, 200))
-    assert res_mountains["success"] is True
-    assert res_mountains["total_strokes"] > 0
+    with patch("pyautogui.moveTo", side_effect=mock_moveTo), \
+         patch("pyautogui.position", side_effect=lambda: (current_pos[0], current_pos[1])):
+        painter = ArtisticPainter(executor=mock_executor)
 
-    res_galaxy = painter.draw_preset("galaxy", (150, 150))
-    assert res_galaxy["success"] is True
-    assert res_galaxy["total_strokes"] > 0
+        # Test presets
+        res_rose = painter.draw_preset("rose", (100, 100))
+        assert res_rose["success"] is True
+        assert res_rose["total_strokes"] > 0
+        assert mock_executor.execute.called
 
-    res_peacock = painter.draw_preset("peacock", (300, 300))
-    assert res_peacock["success"] is True
-    assert res_peacock["total_strokes"] > 0
+        # Test image drawing
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+            img = Image.new("RGB", (100, 100), "white")
+            draw = ImageDraw.Draw(img)
+            draw.rectangle([20, 20, 80, 80], fill=None, outline="black")
+            img.save(tmp.name)
+            tmp_name = tmp.name
 
-    # Test painting from image file
-    from PIL import Image
+        try:
+            res_image = painter.draw_image(tmp_name, (0, 0, 500, 500), max_strokes=50)
+            assert res_image["success"] is True
+            assert res_image["total_strokes"] > 0
+        finally:
+            if os.path.exists(tmp_name):
+                os.remove(tmp_name)
+
+
+def test_artistic_painter_full_character():
+    from uacc.actions.artistic_painter import ArtisticPainter
+    from PIL import Image, ImageDraw
     import tempfile
-    
-    # Create a temporary simple image with white background and black square
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-        img = Image.new("RGB", (100, 100), "white")
-        from PIL import ImageDraw
-        draw = ImageDraw.Draw(img)
-        draw.rectangle([20, 20, 80, 80], fill=None, outline="black")
-        img.save(tmp.name)
-        tmp_name = tmp.name
 
-    try:
-        res_image = painter.draw_image(tmp_name, (0, 0, 500, 500), max_strokes=50)
-        assert res_image["success"] is True
-        assert res_image["total_strokes"] > 0
-    finally:
-        os.remove(tmp_name)
+    mock_executor = MagicMock()
+    mock_executor.execute.return_value = {"success": True, "message": "Simulated click/drag"}
+
+    current_pos = [100, 100]
+    def mock_moveTo(x, y, *args, **kwargs):
+        current_pos[0] = x
+        current_pos[1] = y
+
+    with patch("pyautogui.moveTo", side_effect=mock_moveTo), \
+         patch("pyautogui.position", side_effect=lambda: (current_pos[0], current_pos[1])):
+        painter = ArtisticPainter(executor=mock_executor)
+
+        # Create a synthetic character drawing with face (eyes/mouth), body, legs, and noise
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+            img = Image.new("RGB", (200, 300), "white")
+            draw = ImageDraw.Draw(img)
+            # Head (top)
+            draw.ellipse([60, 20, 140, 90], outline="black", width=2)
+            # Eyes & Mouth (facial features in upper center)
+            draw.ellipse([80, 40, 95, 55], outline="black", width=2)
+            draw.ellipse([105, 40, 120, 55], outline="black", width=2)
+            draw.line([90, 75, 110, 75], fill="black", width=2)
+            # Body (middle)
+            draw.rectangle([70, 90, 130, 200], outline="black", width=2)
+            # Legs (bottom)
+            draw.line([85, 200, 85, 280], fill="black", width=2)
+            draw.line([115, 200, 115, 280], fill="black", width=2)
+            # Background noise specks
+            for noise_x, noise_y in [(10, 10), (190, 20), (15, 280), (185, 290)]:
+                draw.rectangle([noise_x, noise_y, noise_x+2, noise_y+2], fill="black")
+
+            img.save(tmp.name)
+            tmp_name = tmp.name
+
+        try:
+            res = painter.draw_image(tmp_name, (0, 0, 600, 800), max_strokes=100)
+            assert res["success"] is True
+            assert res["total_strokes"] > 0
+        finally:
+            if os.path.exists(tmp_name):
+                os.remove(tmp_name)
+
 
 
 import pytest

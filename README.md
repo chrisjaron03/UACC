@@ -125,16 +125,15 @@ When an AI agent connects to UACC, it gets access to standard desktop automation
 ### System Inspection, Clipboard & Painting (6 tools)
 - `get_system_info`, `list_processes`: Inspect CPU, RAM, disk, display metrics, and running system processes.
 - `clipboard_read`, `clipboard_write`: Read/write system clipboard text.
-- `paint_preset`, `paint_image`: Vector drawing and image sketching in MS Paint.
+- `paint_preset`, `paint_image`, `fetch_image`: Vector drawing, reference image fetching (Pollinations AI for generic art, Web search for characters/monuments), and image sketching in MS Paint.
 
 ### Workflow, Planning & Task Management (10 tools)
 - `uacc_planner`: **MANDATORY FIRST STEP** — Decomposer & tool selector for any UI task.
 - `create_workflow`, `list_workflows`, `get_workflow`, `delete_workflow`, `run_workflow`: Persistent workflow memory stored in `~/.uacc/workflows/`.
 - `start_task`, `get_task_status`, `cancel_task`, `list_tasks`: Background async task runner.
 
-### Safety & Override (2 tools)
+### Safety & Override (1 tool)
 - `acknowledge_user_override`: Reset kill flag after user confirms resuming automation.
-- `set_kill_distance`: Configure mouse pull-away kill distance in pixels.
 
 ---
 
