@@ -69,6 +69,7 @@ class UIElement:
     editable: bool = False
     expandable: bool = False
     expanded: bool = False
+    toggled: Optional[bool] = None  # UIA ToggleState On/Off (Windows only)
     value: str = ""
     children: List["UIElement"] = field(default_factory=list)
 
@@ -95,6 +96,8 @@ class UIElement:
         if self.expandable:
             d["expandable"] = True
             d["expanded"] = self.expanded
+        if self.toggled is not None:
+            d["toggled"] = self.toggled
         if self.value:
             d["value"] = self.value
         if self.children:
@@ -256,6 +259,12 @@ def _wrap_element(
                 elem.value = ctrl.iface_value.CurrentValue or ""
             except Exception:
                 pass
+
+        try:
+            toggle_state = ctrl.iface_toggle.CurrentToggleState
+            elem.toggled = toggle_state == 1  # ToggleState.On
+        except Exception:
+            pass
 
         effective_max_depth = min(max_depth, 4) if is_browser else max_depth
 

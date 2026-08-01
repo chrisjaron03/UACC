@@ -14,6 +14,7 @@ from PIL import Image, ImageFilter, ImageOps
 
 from uacc.actions.schema import ClickAction, DragAction, MouseButton
 from uacc.actions.executor import ActionExecutor
+from uacc.core.accessibility import flatten_elements, get_ui_tree, invalidate_tree_cache
 from uacc.safety.mouse_sentinel import MouseSentinel
 
 logger = logging.getLogger(__name__)
@@ -65,7 +66,7 @@ class ArtisticPainter:
         self,
         image_path: str,
         canvas_bounds: Tuple[int, int, int, int],  # (left, top, right, bottom)
-        max_strokes: int = 150,
+        max_strokes: int = 1500,
         edge_threshold: int = 100,
     ) -> Dict[str, Any]:
         """Load an image, extract its outline contours, and paint it on screen.
@@ -81,96 +82,198 @@ class ArtisticPainter:
         except Exception as exc:
             return {"success": False, "message": f"Failed to load image: {exc}"}
 
-        # Step 1: Image Processing (Assess space, fit within canvas bounds with margin)
+        # Step 2: Image Processing (Assess space, fit within canvas bounds with margin)
         canvas_w = max(100, canvas_bounds[2] - canvas_bounds[0])
         canvas_h = max(100, canvas_bounds[3] - canvas_bounds[1])
 
-        # Preserve aspect ratio with protective canvas margin
+        # Preserve aspect ratio with protective canvas margin.
         margin = 40
         max_target_w = max(50, canvas_w - margin * 2)
         max_target_h = max(50, canvas_h - margin * 2)
-        img.thumbnail((max_target_w, max_target_h))
+        scale = min(max_target_w / max(1, img.width), max_target_h / max(1, img.height))
+        if scale != 1.0:
+            new_w = max(50, int(img.width * scale))
+            new_h = max(50, int(img.height * scale))
+            img = img.resize((new_w, new_h), Image.LANCZOS)
         img_w, img_h = img.size
 
         # Assess starting offset to center artwork strictly within available canvas space
         offset_x = canvas_bounds[0] + (canvas_w - img_w) // 2
         offset_y = canvas_bounds[1] + (canvas_h - img_h) // 2
 
-        # Grayscale + find edges
+        # Grayscale + edge detection with Bilateral Filtering noise reduction.
+        #
+        # Bilateral filtering smooths out smooth color gradients, skin textures,
+        # background noise, and JPEG compression specks while preserving sharp
+        # character boundaries and facial/clothing outlines.
+        import numpy as np
+        import cv2
+
         gray = ImageOps.grayscale(img)
-        edges = gray.filter(ImageFilter.FIND_EDGES)
+        arr = np.array(gray)
 
-        # Binary thresholding
-        binary_edges = edges.point(lambda p: 255 if p > edge_threshold else 0)
-        width, height = binary_edges.size
-        pixels = binary_edges.load()
+        # Apply Bilateral Filter to suppress noise specks while preserving outlines
+        denoised = cv2.bilateralFilter(arr, d=7, sigmaColor=50, sigmaSpace=50)
 
-        # Step 2: Path Tracing (Contiguous DFS tracking of edge pixels)
-        visited = set()
+        # Mild contrast enhancement to boost subtle outlines without noise amplification
+        clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8))
+        enhanced = clahe.apply(denoised)
+
+        # --- Edge detection & Contour Extraction ---
+        min_path_len = max(12, int(min(img_w, img_h) * 0.025))
+        target_mass = max(300, int(arr.size * 0.015))
         raw_paths = []
 
-        def get_neighbors(x, y):
-            neighbors = []
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    if dx == 0 and dy == 0:
-                        continue
-                    nx, ny = x + dx, y + dy
-                    if 0 <= nx < width and 0 <= ny < height:
-                        neighbors.append((nx, ny))
-            return neighbors
+        # Try Canny first (clean single-pixel edges)
+        for hi in (150, 110, 75, 45):
+            lo = max(20, int(hi * 0.4))
+            edges = cv2.Canny(enhanced, lo, hi)
+            contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+            candidates = []
+            for c in contours:
+                # Polygon approximation using Ramer-Douglas-Peucker (RDP) algorithm
+                # to simplify jagged pixel contours into smooth vector curves.
+                epsilon = max(1.0, min(img_w, img_h) * 0.003)
+                approx = cv2.approxPolyDP(c, epsilon, closed=False)
+                pts = approx.reshape(-1, 2)
+                if len(pts) >= 2:
+                    arc_len = cv2.arcLength(c, False)
+                    if arc_len >= min_path_len:
+                        candidates.append([(int(x), int(y)) for x, y in pts])
+            total_pts = sum(len(p) for p in candidates)
+            if total_pts >= target_mass:
+                raw_paths = candidates
+                break
+            raw_paths = candidates
 
-        # Traverse and find contiguous lines
-        for y in range(0, height, 2):
-            for x in range(0, width, 2):
-                if pixels[x, y] == 255 and (x, y) not in visited:
-                    path = []
-                    curr_x, curr_y = x, y
-                    path.append((curr_x, curr_y))
-                    visited.add((curr_x, curr_y))
+        # Fallback: Sobel gradient magnitude thresholding with high noise floor
+        if sum(len(p) for p in raw_paths) < target_mass:
+            gx = cv2.Sobel(enhanced, cv2.CV_64F, 1, 0, ksize=3)
+            gy = cv2.Sobel(enhanced, cv2.CV_64F, 0, 1, ksize=3)
+            mag = np.sqrt(gx ** 2 + gy ** 2)
+            mag_norm = (mag / (mag.max() + 1e-6) * 255).astype(np.uint8)
+            for t in (40, 25, 18):
+                _, binary = cv2.threshold(mag_norm, t, 255, cv2.THRESH_BINARY)
+                binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+                contours, _ = cv2.findContours(binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+                candidates = []
+                for c in contours:
+                    epsilon = max(1.0, min(img_w, img_h) * 0.003)
+                    approx = cv2.approxPolyDP(c, epsilon, closed=False)
+                    pts = approx.reshape(-1, 2)
+                    if len(pts) >= 2 and cv2.arcLength(c, False) >= min_path_len:
+                        candidates.append([(int(x), int(y)) for x, y in pts])
+                if sum(len(p) for p in candidates) >= target_mass:
+                    raw_paths = candidates
+                    break
+                raw_paths = candidates
 
-                    while True:
-                        next_pixel = None
-                        for nx, ny in get_neighbors(curr_x, curr_y):
-                            if pixels[nx, ny] == 255 and (nx, ny) not in visited:
-                                next_pixel = (nx, ny)
-                                break
-                        if next_pixel:
-                            curr_x, curr_y = next_pixel
-                            path.append((curr_x, curr_y))
-                            visited.add((curr_x, curr_y))
-                            if len(path) >= 200:  # Allow continuous long strokes
-                                break
-                        else:
-                            break
-
-                    if len(path) >= 4:  # Filter noise dots
-                        raw_paths.append(path)
+        logger.info("Edge detection: %d simplified contours (%d points)", len(raw_paths), sum(len(p) for p in raw_paths))
 
         if not raw_paths:
             return {"success": False, "message": "No outline paths extracted from image."}
 
-        # Step 3: Assess Starting Locations & Spatial Sequence (Structural + Nearest Neighbor Flow)
-        # Separate structural outlines from detail strokes
-        raw_paths.sort(key=lambda p: len(p), reverse=True)
-        primary_count = max(1, int(len(raw_paths) * 0.4))
-        structural_paths = raw_paths[:primary_count]
-        detail_paths = raw_paths[primary_count:]
+        # Step 3: Smart Full-Character Path Selection (Avoiding Truncation)
+        #
+        # To draw a complete character (or subject) without leaving the face, lower body,
+        # or limbs unpainted:
+        # 1. Identify key facial/central feature paths (located in upper-middle region).
+        # 2. Divide vertical height into bands (top, middle, bottom) and ensure
+        #    structural outlines are selected across all vertical bands.
+        # 3. Fill remaining max_strokes quota with secondary details.
 
+        def get_path_bounds(path):
+            xs = [pt[0] for pt in path]
+            ys = [pt[1] for pt in path]
+            return min(xs), min(ys), max(xs), max(ys)
+
+        def path_length(path):
+            total = 0.0
+            for i in range(len(path) - 1):
+                total += math.hypot(path[i+1][0] - path[i][0], path[i+1][1] - path[i][1])
+            return total
+
+        # Classify paths
+        face_feature_paths = []
+        structural_paths = []
+        detail_paths = []
+
+        for p in raw_paths:
+            plen = path_length(p)
+            min_x, min_y, max_x, max_y = get_path_bounds(p)
+            cx = (min_x + max_x) / 2.0
+            cy = (min_y + max_y) / 2.0
+
+            # Facial / central feature check: upper-middle region, moderate size
+            is_facial = (
+                (0.20 * img_w <= cx <= 0.80 * img_w) and
+                (0.12 * img_h <= cy <= 0.50 * img_h) and
+                (10 <= plen <= min(img_w, img_h) * 0.8) and
+                (max_x - min_x < img_w * 0.5) and (max_y - min_y < img_h * 0.5)
+            )
+
+            if is_facial:
+                face_feature_paths.append(p)
+            elif plen >= min(img_w, img_h) * 0.12:
+                structural_paths.append(p)
+            else:
+                detail_paths.append(p)
+
+        # Sort structural paths by length (longest first)
+        structural_paths.sort(key=lambda p: path_length(p), reverse=True)
+        face_feature_paths.sort(key=lambda p: path_length(p), reverse=True)
+        detail_paths.sort(key=lambda p: path_length(p), reverse=True)
+
+        # Collect paths ensuring full vertical spatial coverage (top, middle, bottom)
+        selected_paths = []
+        selected_set = set()
+
+        def add_to_selected(p):
+            pid = id(p)
+            if pid not in selected_set and len(selected_paths) < max_strokes:
+                selected_set.add(pid)
+                selected_paths.append(p)
+
+        # 1. Always prioritize facial features first
+        for p in face_feature_paths:
+            add_to_selected(p)
+
+        # 2. Select structural paths distributed across vertical bands (Top, Middle, Bottom)
+        # to ensure the character silhouette is completely drawn from head to toe.
+        top_struct = [p for p in structural_paths if get_path_bounds(p)[1] < img_h * 0.33]
+        mid_struct = [p for p in structural_paths if img_h * 0.25 <= get_path_bounds(p)[1] <= img_h * 0.70]
+        bot_struct = [p for p in structural_paths if get_path_bounds(p)[1] > img_h * 0.60]
+
+        # Interleave structural paths from top, mid, bot bands
+        max_len = max(len(top_struct), len(mid_struct), len(bot_struct), len(structural_paths))
+        for i in range(max_len):
+            if i < len(top_struct): add_to_selected(top_struct[i])
+            if i < len(mid_struct): add_to_selected(mid_struct[i])
+            if i < len(bot_struct): add_to_selected(bot_struct[i])
+            if i < len(structural_paths): add_to_selected(structural_paths[i])
+            if len(selected_paths) >= max_strokes:
+                break
+
+        # 3. Fill remaining quota with detail paths
+        for p in detail_paths:
+            add_to_selected(p)
+            if len(selected_paths) >= max_strokes:
+                break
+
+        # Sort the selected set spatially to minimize pen travel distance
         def sort_spatially(paths_list):
-            """Sort paths greedily to minimize pen travel distance between consecutive strokes."""
             if not paths_list:
                 return []
-            # Start from top-left-most path
-            paths_list.sort(key=lambda p: (p[0][1], p[0][0]))
-            ordered = [paths_list.pop(0)]
-            while paths_list:
+            paths_copy = list(paths_list)
+            paths_copy.sort(key=lambda p: (p[0][1], p[0][0]))
+            ordered = [paths_copy.pop(0)]
+            while paths_copy:
                 last_pt = ordered[-1][-1]
                 best_idx = 0
                 best_dist = float("inf")
                 best_reverse = False
 
-                for idx, p in enumerate(paths_list):
+                for idx, p in enumerate(paths_copy):
                     d_start = math.hypot(p[0][0] - last_pt[0], p[0][1] - last_pt[1])
                     d_end = math.hypot(p[-1][0] - last_pt[0], p[-1][1] - last_pt[1])
                     if d_start < best_dist:
@@ -182,31 +285,24 @@ class ArtisticPainter:
                         best_idx = idx
                         best_reverse = True
 
-                next_path = paths_list.pop(best_idx)
+                next_path = paths_copy.pop(best_idx)
                 if best_reverse:
                     next_path.reverse()
                 ordered.append(next_path)
             return ordered
 
-        ordered_structural = sort_spatially(structural_paths)
-        ordered_detail = sort_spatially(detail_paths)
-        final_ordered_paths = (ordered_structural + ordered_detail)[:max_strokes]
+        final_ordered_paths = sort_spatially(selected_paths)
 
-        logger.info("Generated %d spatially optimized stroke paths", len(final_ordered_paths))
+        logger.info("Generated %d spatially optimized full-character stroke paths", len(final_ordered_paths))
 
-        # Step 4: Convert paths to DragActions (smooth downsampling)
+        # Step 4: Convert paths to DragActions (smooth vector strokes)
         drag_actions = []
         for path in final_ordered_paths:
-            simplified_path = []
-            step = 5  # Downsample points for smooth stroke speed
-            for idx in range(0, len(path), step):
-                simplified_path.append(path[idx])
-            if path[-1] not in simplified_path:
-                simplified_path.append(path[-1])
-
-            for i in range(len(simplified_path) - 1):
-                x1, y1 = simplified_path[i]
-                x2, y2 = simplified_path[i + 1]
+            if len(path) < 2:
+                continue
+            for i in range(len(path) - 1):
+                x1, y1 = path[i]
+                x2, y2 = path[i + 1]
                 drag_actions.append(
                     DragAction(
                         start_x=int(x1 + offset_x),
@@ -527,6 +623,75 @@ class ArtisticPainter:
 
         return self._execute_strokes(all_actions)
 
+    def _find_tool_button(self, tool_name: str) -> Optional[Tuple[bool, int, int]]:
+        """Locate a Paint ribbon tool button via the UIA accessibility tree.
+
+        Args:
+            tool_name: Exact button name to look for (e.g. "Pencil").
+
+        Returns:
+            (toggled, center_x, center_y) when the button is exposed by UIA,
+            or None when the tree is unavailable or the button is not found.
+        """
+        try:
+            tree = get_ui_tree("Paint", max_depth=6)
+            for el in flatten_elements(tree):
+                if el.control_type == "Button" and el.name == tool_name:
+                    return (bool(el.toggled), el.center[0], el.center[1])
+        except Exception as exc:
+            logger.debug("UIA scan for '%s' button failed: %s", tool_name, exc)
+        return None
+
+    def _ensure_pencil_selected(self) -> Dict[str, Any]:
+        """Verify the Pencil tool is selected in Paint's toolbar before drawing.
+
+        Finds the Pencil toggle button via the UIA accessibility tree and
+        confirms it is toggled On. When it is not selected, clicks it and
+        re-verifies (retrying once). Falls back to the legacy fixed toolbar
+        position when the tree does not expose the button.
+
+        Returns:
+            Dict with "selected", "method", and "clicked" (the position the
+            mouse ended at, or None when no click was needed).
+        """
+        info = self._find_tool_button("Pencil")
+
+        if info is None:
+            logger.warning(
+                "Pencil button not exposed via accessibility tree — "
+                "falling back to legacy fixed toolbar click"
+            )
+            self.executor.execute(ClickAction(
+                x=170, y=105, button=MouseButton.LEFT,
+                reasoning="Select Pencil tool (legacy fallback)",
+            ))
+            return {"selected": True, "method": "fallback", "clicked": (170, 105)}
+
+        toggled, cx, cy = info
+        if toggled:
+            logger.info("Pencil tool already selected — no toolbar click needed")
+            return {"selected": True, "method": "uia-check", "clicked": None}
+
+        for attempt in (1, 2):
+            logger.info(
+                "Pencil tool NOT selected — clicking it at (%d, %d) (attempt %d)",
+                cx, cy, attempt,
+            )
+            self.executor.execute(ClickAction(
+                x=cx, y=cy, button=MouseButton.LEFT,
+                reasoning=f"Select Pencil tool (attempt {attempt})",
+            ))
+            time.sleep(0.2)
+            invalidate_tree_cache()
+            info = self._find_tool_button("Pencil")
+            if info is not None and info[0]:
+                return {"selected": True, "method": "uia-click", "clicked": (cx, cy)}
+            if info is not None:
+                toggled, cx, cy = info
+
+        logger.warning("Pencil tool still not selected after 2 click attempts")
+        return {"selected": False, "method": "uia-click", "clicked": (cx, cy)}
+
     def _execute_strokes(self, strokes: List[DragAction]) -> Dict[str, Any]:
         """Execute a list of DragActions sequentially using fast inline pyautogui calls."""
         total = len(strokes)
@@ -536,8 +701,24 @@ class ArtisticPainter:
         logger.info("Executing %d drawing strokes...", total)
         import pyautogui
 
-        # Ensure Pencil tool (black ink) is selected in MS Paint toolbar
-        self.executor.execute(ClickAction(x=170, y=105, button=MouseButton.LEFT, reasoning="Select Pencil tool"))
+        # Prime the sentinel: reset any stale kill flag and anchor the expected
+        # cursor position to where the mouse currently is. Without this, the
+        # expected position left over from a previous tool call makes the
+        # sentinel false-kill the drawing before the first stroke starts.
+        if self.sentinel:
+            cur = pyautogui.position()
+            self.sentinel.acknowledge_override()
+            self.sentinel.set_expected_position(int(cur.x), int(cur.y))
+
+        # Ensure the Pencil tool (black ink) is selected in MS Paint toolbar.
+        # The selection is verified via the UIA accessibility tree; when it is
+        # not selected we click the button and re-verify, falling back to the
+        # legacy fixed toolbar position only if UIA doesn't expose the button.
+        ensure = self._ensure_pencil_selected()
+        if ensure.get("clicked") is not None and self.sentinel:
+            # Re-anchor the sentinel at the position where the mouse ended up
+            # so the per-stroke check_killed() doesn't false-trigger.
+            self.sentinel.set_expected_position(*ensure["clicked"])
 
         success_count = 0
 
@@ -596,6 +777,8 @@ class ArtisticPainter:
             "message": f"Completed {success_count}/{total} strokes ({pct:.1f}%)",
             "total_strokes": total,
             "success_strokes": success_count,
+            "tool": "pencil",
+            "tool_selection": ensure,
         }
 
     def cleanup(self) -> None:

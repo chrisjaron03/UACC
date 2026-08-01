@@ -104,6 +104,26 @@ class MouseSentinel:
                 if elapsed > 5.0:
                     self._killed = False
                     logger.info("Auto-acknowledge: %0.1fs since last UACC call", elapsed)
+                    return False
+            # Synchronous fallback: also check cursor position directly
+            # so we don't miss overrides between strokes when the monitor
+            # thread hasn't had a chance to run yet.
+            if not self._killed and self._expected_pos is not None and not self._is_moving:
+                cursor = self._get_cursor()
+                if cursor is not None:
+                    cx, cy = cursor
+                    dx = cx - self._expected_pos[0]
+                    dy = cy - self._expected_pos[1]
+                    distance = math.sqrt(dx * dx + dy * dy)
+                    if distance > self._kill_distance:
+                        self._killed = True
+                        self._last_uacc_call = time.time()
+                        logger.warning(
+                            "User override detected (sync check): mouse moved %dpx (threshold: %dpx)",
+                            round(distance), self._kill_distance,
+                        )
+                        self._log_override(round(distance), self._kill_distance)
+                        return True
             return self._killed
 
     def acknowledge_override(self) -> None:
