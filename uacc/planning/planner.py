@@ -390,6 +390,7 @@ Last seen: {app_context.get('last_seen', 'unknown')}
             estimated_ms = 5000
             risk = "low"
 
+
         elif any(w in desc_lower for w in ["launch", "open app", "start", "run program"]):
             recommended_tools = ["launch_app", "wait_for_element", "get_active_window"]
             app_name = target_app or _extract_app_name(task)
@@ -527,14 +528,34 @@ def _extract_element_name(text: str) -> str:
             # Skip through stop words to find the real target
             for j in range(i + 1, len(words)):
                 candidate = words[j].strip("'\",.!?;:")
-                if candidate.lower() not in stop_words and len(candidate) > 1:
-                    return candidate
     # Fallback: last non-stop word
     for w in reversed(words):
         wc = w.strip("'\",.!?;:")
         if wc.lower() not in stop_words and len(wc) > 1:
             return wc
     return ""
+
+
+def _sanitize_filename(name: str) -> str:
+    """Sanitize string for use as a filename."""
+    import re
+    clean = re.sub(r'[^a-zA-Z0-9_\-]', '_', name.lower())
+    clean = re.sub(r'_+', '_', clean).strip('_')
+    return clean[:50] or "reference_image"
+
+
+def _extract_drawing_subject(text: str) -> str:
+    """Extract subject/character/prompt for drawing task."""
+    import re
+    quoted = re.findall(r'"([^"]+)"|\'([^\']+)\'', text)
+    if quoted:
+        return quoted[0][0] or quoted[0][1]
+
+    stop_words = {"the", "a", "an", "draw", "paint", "sketch", "picture", "image", "of", "in", "mspaint", "paint.net", "me", "please"}
+    words = text.lower().split()
+    subject_words = [w.strip("'\",.!?;:") for w in words if w.strip("'\",.!?;:") not in stop_words]
+    return " ".join(subject_words) if subject_words else "art"
+
 
 
 def _extract_text_to_type(text: str) -> str:

@@ -161,6 +161,42 @@ def _check_sentinel() -> str | None:
     return None
 
 
+def _reset_sentinel_anchor() -> None:
+    """Reset the sentinel kill flag and anchor the expected cursor position to
+    the current cursor location.
+
+    Painting sessions are long-running automations that legitimately move the
+    mouse. The sentinel is a long-lived singleton, so its expected position can
+    go stale between tool calls — a stale anchor makes the sentinel false-kill
+    the drawing before the first stroke. Anchoring to the live cursor keeps the
+    sentinel armed for genuine user pull-aways while letting painting start
+    cleanly.
+    """
+    sentinel = _get_sentinel()
+    sentinel.acknowledge_override()
+    try:
+        import pyautogui
+        cur = pyautogui.position()
+        sentinel.set_expected_position(int(cur.x), int(cur.y))
+    except Exception:
+        pass
+
+
+def _bring_paint_to_front() -> None:
+    """Ensure the Paint window is visible and focused after painting.
+
+    Other windows (IDE, browser) can sit on top of Paint while strokes are
+    drawn, hiding the finished drawing. Focus is restored via Win32 calls
+    only — no mouse movement, so the sentinel stays clean.
+    """
+    try:
+        from uacc.core.window_manager import minimize_maximize_window, focus_window
+        minimize_maximize_window("Paint", "maximize")
+        focus_window("Paint")
+    except Exception:
+        pass
+
+
 # ═══════════════════════════════════════════════════════════════
 #  TOOLS
 # ═══════════════════════════════════════════════════════════════
@@ -1477,9 +1513,9 @@ def paint_preset(preset_name: str) -> str:
         JSON with success status and drawing stroke details.
     """
     try:
-        killed = _check_sentinel()
-        if killed:
-            return killed
+        # Reset stale sentinel anchor so a leftover expected position from a
+        # previous tool call can't false-kill the drawing before it starts.
+        _reset_sentinel_anchor()
 
         # 1. Launch / focus Paint and maximize
         _launch_app("mspaint", wait_ms=1000)
@@ -1498,6 +1534,8 @@ def paint_preset(preset_name: str) -> str:
             result = painter.draw_preset(preset_name, (cx, cy))
         finally:
             painter.cleanup()
+            # Bring Paint to the front so the finished drawing is actually visible.
+            _bring_paint_to_front()
 
         session = get_session()
         session.log_action("paint_preset", {"preset": preset_name}, result)
@@ -1537,9 +1575,9 @@ def paint_image(image_path: str, max_strokes: int = 500) -> str:
         JSON with success status and drawing stroke details.
     """
     try:
-        killed = _check_sentinel()
-        if killed:
-            return killed
+        # Reset stale sentinel anchor so a leftover expected position from a
+        # previous tool call can't false-kill the drawing before it starts.
+        _reset_sentinel_anchor()
 
         # 1. Launch / focus Paint and maximize window
         _launch_app("mspaint", wait_ms=1000)
@@ -1573,11 +1611,13 @@ def paint_image(image_path: str, max_strokes: int = 500) -> str:
 
         # 3. Paint image outlines with optimized execution
         from uacc.actions.artistic_painter import ArtisticPainter as FastPainter
-        painter = FastPainter()
+        painter = FastPainter(executor=_get_executor(), sentinel=_get_sentinel())
         try:
             result = painter.draw_image(image_path, canvas_bounds, max_strokes=max_strokes)
         finally:
             painter.cleanup()
+            # Bring Paint to the front so the finished drawing is actually visible.
+            _bring_paint_to_front()
 
         session = get_session()
         session.log_action("paint_image", {"image_path": image_path, "max_strokes": max_strokes}, result)
@@ -1953,6 +1993,8 @@ def computer_control_guide() -> str:
 ### Art & Painting
 - `paint_preset` — Paint preset designs in MS Paint
 - `paint_image` — Sketch outline of any image in MS Paint
+- `fetch_image` — Fetch or generate reference image for drawing
+
 """
 
 
@@ -2311,7 +2353,7 @@ def _populate_tool_registry() -> None:
         "browser_query", "browser_get_page_info", "browser_execute_js",
         "browser_wait_for", "browser_click", "browser_type", "browser_navigate",
         # Planning & Safety
-        "uacc_planner", "acknowledge_user_override", "set_kill_distance",
+        "uacc_planner", "acknowledge_user_override",
     ]
     # Memory tools
     supreme_tools = [
@@ -4526,21 +4568,6 @@ def acknowledge_user_override() -> str:
     """
     _get_sentinel().acknowledge_override()
     return json.dumps({"success": True, "message": "Override acknowledged, kill flag reset"})
-
-
-@mcp.tool()
-def set_kill_distance(pixels: int) -> str:
-    """Set the mouse pull-away kill distance in pixels.
-    
-    The kill distance is how far the user must move the mouse from its
-    expected position to trigger an automation halt. Default is adaptive
-    (1 inch at current DPI, minimum 150px).
-    
-    Args:
-        pixels: Distance in pixels. Set to 0 to restore adaptive default.
-    """
-    _get_sentinel().set_kill_distance(pixels)
-    return json.dumps({"success": True, "message": f"Kill distance set to {pixels}px"})
 
 
 _populate_tool_registry()

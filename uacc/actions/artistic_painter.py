@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from uacc.actions.schema import ClickAction, DragAction, MouseButton
 from uacc.actions.executor import ActionExecutor
+from uacc.core.accessibility import flatten_elements, get_ui_tree, invalidate_tree_cache
 from uacc.safety.mouse_sentinel import MouseSentinel
 
 logger = logging.getLogger(__name__)
@@ -116,8 +117,56 @@ class ArtisticPainter:
         structural_paths = raw_paths[:primary_count]
         detail_paths = raw_paths[primary_count:]
 
+            if is_facial:
+                face_feature_paths.append(p)
+            elif plen >= min(img_w, img_h) * 0.12:
+                structural_paths.append(p)
+            else:
+                detail_paths.append(p)
+
+        # Sort structural paths by length (longest first)
+        structural_paths.sort(key=lambda p: path_length(p), reverse=True)
+        face_feature_paths.sort(key=lambda p: path_length(p), reverse=True)
+        detail_paths.sort(key=lambda p: path_length(p), reverse=True)
+
+        # Collect paths ensuring full vertical spatial coverage (top, middle, bottom)
+        selected_paths = []
+        selected_set = set()
+
+        def add_to_selected(p):
+            pid = id(p)
+            if pid not in selected_set and len(selected_paths) < max_strokes:
+                selected_set.add(pid)
+                selected_paths.append(p)
+
+        # 1. Always prioritize facial features first
+        for p in face_feature_paths:
+            add_to_selected(p)
+
+        # 2. Select structural paths distributed across vertical bands (Top, Middle, Bottom)
+        # to ensure the character silhouette is completely drawn from head to toe.
+        top_struct = [p for p in structural_paths if get_path_bounds(p)[1] < img_h * 0.33]
+        mid_struct = [p for p in structural_paths if img_h * 0.25 <= get_path_bounds(p)[1] <= img_h * 0.70]
+        bot_struct = [p for p in structural_paths if get_path_bounds(p)[1] > img_h * 0.60]
+
+        # Interleave structural paths from top, mid, bot bands
+        max_len = max(len(top_struct), len(mid_struct), len(bot_struct), len(structural_paths))
+        for i in range(max_len):
+            if i < len(top_struct): add_to_selected(top_struct[i])
+            if i < len(mid_struct): add_to_selected(mid_struct[i])
+            if i < len(bot_struct): add_to_selected(bot_struct[i])
+            if i < len(structural_paths): add_to_selected(structural_paths[i])
+            if len(selected_paths) >= max_strokes:
+                break
+
+        # 3. Fill remaining quota with detail paths
+        for p in detail_paths:
+            add_to_selected(p)
+            if len(selected_paths) >= max_strokes:
+                break
+
+        # Sort the selected set spatially to minimize pen travel distance
         def sort_spatially(paths_list):
-            """Sort paths greedily to minimize pen travel distance between consecutive strokes."""
             if not paths_list:
                 return []
             paths_list.sort(key=lambda p: (p[0][1], p[0][0]))
@@ -128,7 +177,7 @@ class ArtisticPainter:
                 best_dist = float("inf")
                 best_reverse = False
 
-                for idx, p in enumerate(paths_list):
+                for idx, p in enumerate(paths_copy):
                     d_start = math.hypot(p[0][0] - last_pt[0], p[0][1] - last_pt[1])
                     d_end = math.hypot(p[-1][0] - last_pt[0], p[-1][1] - last_pt[1])
                     if d_start < best_dist:
@@ -140,17 +189,15 @@ class ArtisticPainter:
                         best_idx = idx
                         best_reverse = True
 
-                next_path = paths_list.pop(best_idx)
+                next_path = paths_copy.pop(best_idx)
                 if best_reverse:
                     next_path.reverse()
                 ordered.append(next_path)
             return ordered
 
-        ordered_structural = sort_spatially(structural_paths)
-        ordered_detail = sort_spatially(detail_paths)
-        final_ordered_paths = (ordered_structural + ordered_detail)[:max_strokes]
+        final_ordered_paths = sort_spatially(selected_paths)
 
-        logger.info("Generated %d spatially optimized stroke paths", len(final_ordered_paths))
+        logger.info("Generated %d spatially optimized full-character stroke paths", len(final_ordered_paths))
 
         # Step 5: Convert paths to DragActions using Douglas-Peucker simplification
         # and continuous stroke chaining for fewer mouse down/up cycles
@@ -494,6 +541,75 @@ class ArtisticPainter:
 
         return self._execute_strokes(all_actions)
 
+    def _find_tool_button(self, tool_name: str) -> Optional[Tuple[bool, int, int]]:
+        """Locate a Paint ribbon tool button via the UIA accessibility tree.
+
+        Args:
+            tool_name: Exact button name to look for (e.g. "Pencil").
+
+        Returns:
+            (toggled, center_x, center_y) when the button is exposed by UIA,
+            or None when the tree is unavailable or the button is not found.
+        """
+        try:
+            tree = get_ui_tree("Paint", max_depth=6)
+            for el in flatten_elements(tree):
+                if el.control_type == "Button" and el.name == tool_name:
+                    return (bool(el.toggled), el.center[0], el.center[1])
+        except Exception as exc:
+            logger.debug("UIA scan for '%s' button failed: %s", tool_name, exc)
+        return None
+
+    def _ensure_pencil_selected(self) -> Dict[str, Any]:
+        """Verify the Pencil tool is selected in Paint's toolbar before drawing.
+
+        Finds the Pencil toggle button via the UIA accessibility tree and
+        confirms it is toggled On. When it is not selected, clicks it and
+        re-verifies (retrying once). Falls back to the legacy fixed toolbar
+        position when the tree does not expose the button.
+
+        Returns:
+            Dict with "selected", "method", and "clicked" (the position the
+            mouse ended at, or None when no click was needed).
+        """
+        info = self._find_tool_button("Pencil")
+
+        if info is None:
+            logger.warning(
+                "Pencil button not exposed via accessibility tree — "
+                "falling back to legacy fixed toolbar click"
+            )
+            self.executor.execute(ClickAction(
+                x=170, y=105, button=MouseButton.LEFT,
+                reasoning="Select Pencil tool (legacy fallback)",
+            ))
+            return {"selected": True, "method": "fallback", "clicked": (170, 105)}
+
+        toggled, cx, cy = info
+        if toggled:
+            logger.info("Pencil tool already selected — no toolbar click needed")
+            return {"selected": True, "method": "uia-check", "clicked": None}
+
+        for attempt in (1, 2):
+            logger.info(
+                "Pencil tool NOT selected — clicking it at (%d, %d) (attempt %d)",
+                cx, cy, attempt,
+            )
+            self.executor.execute(ClickAction(
+                x=cx, y=cy, button=MouseButton.LEFT,
+                reasoning=f"Select Pencil tool (attempt {attempt})",
+            ))
+            time.sleep(0.2)
+            invalidate_tree_cache()
+            info = self._find_tool_button("Pencil")
+            if info is not None and info[0]:
+                return {"selected": True, "method": "uia-click", "clicked": (cx, cy)}
+            if info is not None:
+                toggled, cx, cy = info
+
+        logger.warning("Pencil tool still not selected after 2 click attempts")
+        return {"selected": False, "method": "uia-click", "clicked": (cx, cy)}
+
     def _execute_strokes(self, strokes: List[DragAction]) -> Dict[str, Any]:
         """Execute a list of DragActions sequentially using fast inline pyautogui calls."""
         total = len(strokes)
@@ -504,8 +620,24 @@ class ArtisticPainter:
         import pyautogui
         from uacc.safety.mouse_sentinel import is_escape_pressed
 
-        # Ensure Pencil tool (black ink) is selected in MS Paint toolbar
-        self.executor.execute(ClickAction(x=170, y=105, button=MouseButton.LEFT, reasoning="Select Pencil tool"))
+        # Prime the sentinel: reset any stale kill flag and anchor the expected
+        # cursor position to where the mouse currently is. Without this, the
+        # expected position left over from a previous tool call makes the
+        # sentinel false-kill the drawing before the first stroke starts.
+        if self.sentinel:
+            cur = pyautogui.position()
+            self.sentinel.acknowledge_override()
+            self.sentinel.set_expected_position(int(cur.x), int(cur.y))
+
+        # Ensure the Pencil tool (black ink) is selected in MS Paint toolbar.
+        # The selection is verified via the UIA accessibility tree; when it is
+        # not selected we click the button and re-verify, falling back to the
+        # legacy fixed toolbar position only if UIA doesn't expose the button.
+        ensure = self._ensure_pencil_selected()
+        if ensure.get("clicked") is not None and self.sentinel:
+            # Re-anchor the sentinel at the position where the mouse ended up
+            # so the per-stroke check_killed() doesn't false-trigger.
+            self.sentinel.set_expected_position(*ensure["clicked"])
 
         success_count = 0
 
@@ -605,6 +737,8 @@ class ArtisticPainter:
             "message": f"Completed {success_count}/{total} strokes ({pct:.1f}%)",
             "total_strokes": total,
             "success_strokes": success_count,
+            "tool": "pencil",
+            "tool_selection": ensure,
         }
 
     def cleanup(self) -> None:
