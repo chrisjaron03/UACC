@@ -380,12 +380,14 @@ Last seen: {app_context.get('last_seen', 'unknown')}
             risk = "low"
 
         elif any(w in desc_lower for w in ["draw", "paint", "sketch", "art", "canvas", "picture"]):
-            recommended_tools = ["launch_app", "paint_image", "screenshot"]
-            steps.append({"step": 1, "tool": "launch_app", "params": {"name_or_path": target_app or "mspaint"}, "reasoning": "Open drawing application"})
-            steps.append({"step": 2, "tool": "paint_image", "params": {"image_path": "<path>", "max_strokes": 150}, "reasoning": "Trace the image outline"})
+            recommended_tools = ["list_fetched_images", "fetch_line_art", "launch_app", "paint_image", "screenshot"]
+            steps.append({"step": 1, "tool": "list_fetched_images", "params": {}, "reasoning": "Check if a suitable image was already downloaded (reuse is faster)"})
+            steps.append({"step": 2, "tool": "fetch_line_art", "params": {"query": "<subject>", "style": "outline"}, "reasoning": "MANDATORY — Download line art from internet if no cached image matches. You MUST have an image_path before calling paint_image."})
+            steps.append({"step": 3, "tool": "launch_app", "params": {"name_or_path": target_app or "mspaint"}, "reasoning": "Open drawing application"})
+            steps.append({"step": 4, "tool": "paint_image", "params": {"image_path": "<path from fetch_line_art result>", "max_strokes": 150}, "reasoning": "Trace the fetched image outline. Use image_path from Step 2's result."})
             if is_thorough:
-                steps.append({"step": 3, "tool": "screenshot", "params": {}, "reasoning": "Capture the result"})
-            estimated_ms = 3500
+                steps.append({"step": 5, "tool": "screenshot", "params": {}, "reasoning": "Capture the result"})
+            estimated_ms = 5000
             risk = "low"
 
         elif any(w in desc_lower for w in ["launch", "open app", "start", "run program"]):

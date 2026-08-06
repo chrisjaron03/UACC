@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from unittest.mock import MagicMock, patch
 
 from uacc.core.window_manager import WindowInfo, launch_application, open_url
@@ -216,23 +217,100 @@ def test_artistic_painter():
     assert res_peacock["success"] is True
     assert res_peacock["total_strokes"] > 0
 
-    # Test painting from image file
-    from PIL import Image
+    # Test painting from image file using CV2-based pipeline
+    import cv2
     import tempfile
-    
-    # Create a temporary simple image with white background and black square
+
+    # Create a temporary simple image with white background and black rectangle
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-        img = Image.new("RGB", (100, 100), "white")
-        from PIL import ImageDraw
-        draw = ImageDraw.Draw(img)
-        draw.rectangle([20, 20, 80, 80], fill=None, outline="black")
-        img.save(tmp.name)
+        img = np.ones((100, 100, 3), dtype=np.uint8) * 255
+        cv2.rectangle(img, (20, 20), (80, 80), (0, 0, 0), 2)
+        cv2.line(img, (30, 30), (70, 70), (0, 0, 0), 2)
+        cv2.imwrite(tmp.name, img)
         tmp_name = tmp.name
 
     try:
-        res_image = painter.draw_image(tmp_name, (0, 0, 500, 500), max_strokes=50)
+        res_image = painter.draw_image(tmp_name, (0, 0, 500, 500), max_strokes=100)
         assert res_image["success"] is True
         assert res_image["total_strokes"] > 0
+    finally:
+        os.remove(tmp_name)
+
+
+def test_image_processor_pipeline():
+    """Test the CV2-based image processing module functions."""
+    import cv2
+    import tempfile
+    from uacc.actions.image_processor import (
+        composite_on_white,
+        preprocess_for_strokes,
+        clean_small_components,
+        skeletonize_binary,
+        fill_skeleton_gaps,
+        extract_stroke_paths,
+        process_image_to_paths,
+    )
+
+    # Test composite_on_white with opaque BGR image (no-op)
+    bgr = np.ones((50, 50, 3), dtype=np.uint8) * 128
+    result = composite_on_white(bgr)
+    assert result.shape == (50, 50, 3)
+    assert np.array_equal(result, bgr)
+
+    # Test composite_on_white with BGRA image
+    bgra = np.zeros((50, 50, 4), dtype=np.uint8)
+    bgra[:, :, :3] = 0  # Black
+    bgra[:, :, 3] = 128  # 50% alpha
+    result = composite_on_white(bgra)
+    assert result.shape == (50, 50, 3)
+    # Should be roughly 127-128 (blend of black and white at 50% alpha)
+    assert 120 < result[25, 25, 0] < 135
+
+    # Test preprocess_for_strokes produces binary output
+    test_img = np.ones((100, 100, 3), dtype=np.uint8) * 255
+    cv2.rectangle(test_img, (20, 20), (80, 80), (0, 0, 0), 3)
+    binary = preprocess_for_strokes(test_img)
+    assert binary.dtype == np.uint8
+    assert set(np.unique(binary)).issubset({0, 255})
+    assert cv2.countNonZero(binary) > 0
+
+    # Test clean_small_components
+    noisy = np.zeros((100, 100), dtype=np.uint8)
+    noisy[10, 10] = 255  # tiny 1px speck
+    cv2.rectangle(noisy, (40, 40), (60, 60), 255, -1)  # 20x20 block
+    cleaned = clean_small_components(noisy, min_area=5)
+    assert cleaned[10, 10] == 0  # speck removed
+    assert cleaned[50, 50] == 255  # block kept
+
+    # Test skeletonize_binary
+    thick = np.zeros((100, 100), dtype=np.uint8)
+    cv2.rectangle(thick, (30, 30), (70, 70), 255, 5)
+    skel = skeletonize_binary(thick)
+    assert cv2.countNonZero(skel) > 0
+    assert cv2.countNonZero(skel) < cv2.countNonZero(thick)
+
+    # Test extract_stroke_paths
+    line_skel = np.zeros((100, 100), dtype=np.uint8)
+    for x in range(10, 90):
+        line_skel[50, x] = 255
+    paths = extract_stroke_paths(line_skel, min_path_length=4)
+    assert len(paths) >= 1
+    total_pts = sum(len(p) for p in paths)
+    assert total_pts > 10
+
+    # Test full pipeline with a temp image
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+        full_img = np.ones((200, 200, 3), dtype=np.uint8) * 255
+        cv2.circle(full_img, (100, 100), 50, (0, 0, 0), 2)
+        cv2.line(full_img, (50, 50), (150, 150), (0, 0, 0), 2)
+        cv2.imwrite(tmp.name, full_img)
+        tmp_name = tmp.name
+
+    try:
+        paths, w, h = process_image_to_paths(tmp_name, target_size=(200, 200))
+        assert len(paths) > 0
+        assert w > 0
+        assert h > 0
     finally:
         os.remove(tmp_name)
 

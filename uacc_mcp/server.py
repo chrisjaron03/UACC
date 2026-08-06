@@ -1516,8 +1516,21 @@ def paint_image(image_path: str, max_strokes: int = 500) -> str:
     contours using edge detection, and draws the sketch using UACC's
     brush stroke coordinates.
 
+    **PREREQUISITE — You MUST have an image file first!**
+    If you don't already have an ``image_path``, call
+    ``fetch_line_art(query="...")`` first to download one from the
+    internet.  The correct workflow is::
+
+        Step 1: result = fetch_line_art(query="cat")
+        Step 2: paint_image(image_path=result["image_path"])
+
+    You can also call ``list_fetched_images()`` to reuse a previously
+    downloaded image.
+
     Args:
         image_path: Absolute path to the source image file to sketch.
+                    Get this from ``fetch_line_art`` or
+                    ``list_fetched_images``.
         max_strokes: Maximum brush strokes to draw (default 500).
 
     Returns:
@@ -1573,6 +1586,174 @@ def paint_image(image_path: str, max_strokes: int = 500) -> str:
 
     except Exception as exc:
         return json.dumps({"success": False, "error": format_error(exc, "Paint image failed")})
+
+
+@mcp.tool()
+def fetch_line_art(
+    query: str,
+    style: str = "outline",
+    category: str = "",
+    convert_bw: bool = True,
+    max_candidates: int = 12,
+    target_width: int = 800,
+    target_height: int = 800,
+) -> str:
+    """⚠️ MANDATORY BEFORE DRAWING — Fetch a line art image from the internet.
+
+    You **MUST** call this tool before ``paint_image`` or ``paint_preset``
+    whenever the user asks you to draw something and you don't already have
+    an image file path.  Do NOT skip this step.
+
+    **Correct workflow**::
+
+        Step 1: result = fetch_line_art(query="cat")
+        Step 2: Check result["success"] is True
+        Step 3: paint_image(image_path=result["image_path"])
+
+    Searches Bing, DuckDuckGo, and OpenClipart for line art matching
+    your query.  Downloads multiple candidates in parallel, scores them
+    for quality (resolution, line-art suitability, aspect ratio), picks
+    the best one, auto-crops whitespace, enhances contrast, converts to
+    clean B&W, and saves locally with metadata.
+
+    **TIP**: Call ``list_fetched_images()`` first to check if a suitable
+    image was already downloaded in a previous session — reuse is faster!
+
+    Args:
+        query: What to search for (e.g. "cat", "dragon", "rose flower",
+               "butterfly", "sports car", "Eiffel Tower").
+        style: Art style hint.  One of:
+               - "outline" — clean line art outlines (default, best for drawing)
+               - "coloring_page" — printable coloring page style
+               - "sketch" — pencil-sketch line drawing
+               - "silhouette" — simple black silhouette
+               - "cartoon" — cartoon clipart illustration
+               - "realistic" — detailed realistic drawing
+        category: Optional subject category for smarter search:
+                  "animal", "vehicle", "nature", "object", "character",
+                  "symbol", "building", "food".  Leave empty for auto.
+        convert_bw: If True (default), convert to clean B&W line art
+                    optimised for the drawing pipeline.
+        max_candidates: Search results to try (default 12).  Higher =
+                        better quality but slower.
+        target_width: Maximum width in pixels (default 800).
+        target_height: Maximum height in pixels (default 800).
+
+    Returns:
+        JSON with ``success``, ``image_path`` (pass this to paint_image!),
+        ``source_url``, ``width``, ``height``, ``quality_score`` (0-1),
+        ``message``, and ``next_step`` (tells you what to do next).
+    """
+    try:
+        from uacc.core.fetch_image import fetch_line_art as _fetch
+
+        result = _fetch(
+            query=query,
+            style=style,
+            category=category or None,
+            max_candidates=max_candidates,
+            convert_bw=convert_bw,
+            target_size=(target_width, target_height),
+        )
+
+        session = get_session()
+        session.log_action(
+            "fetch_line_art",
+            {"query": query, "style": style, "category": category, "convert_bw": convert_bw},
+            result,
+        )
+
+        return json.dumps(result)
+
+    except Exception as exc:
+        return json.dumps({"success": False, "error": format_error(exc, "Fetch line art failed")})
+
+
+@mcp.tool()
+def fetch_image(
+    query: str,
+    style: str = "cartoon",
+    category: str = "",
+    max_candidates: int = 12,
+    target_width: int = 800,
+    target_height: int = 800,
+) -> str:
+    """Fetch a general image from the internet (NOT converted to line art).
+
+    Unlike ``fetch_line_art``, this downloads images WITHOUT converting
+    to black-and-white.  Use this when you need a reference photo,
+    colored clipart, icon, logo, or any image that should keep its
+    original colors.
+
+    **For drawing tasks**: Use ``fetch_line_art`` instead — it optimises
+    the image for UACC's tracing/drawing pipeline.
+
+    Args:
+        query: What to search for (e.g. "sunset", "company logo", "icon").
+        style: Style hint — "cartoon" (default), "realistic", "outline",
+               "coloring_page", "sketch", "silhouette".
+        category: Optional subject category: "animal", "vehicle",
+                  "nature", "object", "character", "symbol",
+                  "building", "food".
+        max_candidates: Search results to try (default 12).
+        target_width: Maximum width in pixels (default 800).
+        target_height: Maximum height in pixels (default 800).
+
+    Returns:
+        JSON with ``success``, ``image_path``, ``source_url``,
+        ``width``, ``height``, ``quality_score``, ``message``.
+    """
+    try:
+        from uacc.core.fetch_image import fetch_image as _fetch_img
+
+        result = _fetch_img(
+            query=query,
+            style=style,
+            category=category or None,
+            max_candidates=max_candidates,
+            target_size=(target_width, target_height),
+        )
+
+        session = get_session()
+        session.log_action(
+            "fetch_image",
+            {"query": query, "style": style, "category": category},
+            result,
+        )
+
+        return json.dumps(result)
+
+    except Exception as exc:
+        return json.dumps({"success": False, "error": format_error(exc, "Fetch image failed")})
+
+
+@mcp.tool()
+def list_fetched_images() -> str:
+    """List all previously fetched images (line art and general).
+
+    **TIP**: Call this BEFORE ``fetch_line_art`` to check if a suitable
+    image was already downloaded — reusing cached images is faster!
+
+    Returns a JSON array of cached images stored in ``~/.uacc/fetched_images/``
+    with their paths, filenames, sizes, dimensions, and metadata (source URL,
+    original query, quality score).  Each ``path`` can be passed directly to
+    ``paint_image(image_path=...)``.
+
+    Returns:
+        JSON with ``success``, ``count``, and ``images`` array.
+    """
+    try:
+        from uacc.core.fetch_image import list_fetched_images as _list
+
+        images = _list()
+        return json.dumps({
+            "success": True,
+            "count": len(images),
+            "images": images,
+        })
+
+    except Exception as exc:
+        return json.dumps({"success": False, "error": format_error(exc, "List fetched images failed")})
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -2,7 +2,7 @@
 
 ## 🛜 MCP Tools Only — No Python Scripts
 
-UACC exposes **68 native MCP tools** (`mcp_uacc_*`) that you can call directly. **Do NOT write separate Python scripts** that wrap or re-implement UACC's functionality. Use the built-in MCP tools:
+UACC exposes **70 native MCP tools** (`mcp_uacc_*`) that you can call directly. **Do NOT write separate Python scripts** that wrap or re-implement UACC's functionality. Use the built-in MCP tools:
 
 | What you want | Use this MCP tool |
 |---|---|
@@ -14,12 +14,44 @@ UACC exposes **68 native MCP tools** (`mcp_uacc_*`) that you can call directly. 
 | Keyboard shortcuts | `mcp_uacc_hotkey(keys=["ctrl","s"])` |
 | Launch an app | `mcp_uacc_launch_app(name_or_path="...")` |
 | Focus a window | `mcp_uacc_focus_window(title="...")` |
+| **Fetch an image to draw** | **`mcp_uacc_fetch_line_art(query="...")` ← MUST call before paint_image** |
+| Fetch a general image | `mcp_uacc_fetch_image(query="...")` |
+| Check cached images | `mcp_uacc_list_fetched_images()` |
 
 ## 🎨 Artistic Painter Mandate — Drawing & Design Tasks Only
 
 For ANY drawing task in ANY drawing app (Paint, Photoshop, Krita, etc.) or design app (Figma, Canva, Illustrator, etc.), you **MUST use `paint_preset` or `paint_image` exclusively** — these are the only "artistic painter" tools authorized for drawing/design work. Never attempt to draw by manually clicking, dragging, or issuing raw mouse coordinates. The artistic painter handles stroke planning, human-like Bézier curves, canvas bounds, and tracing.
 
 For all other non-drawing tasks (UI navigation, typing, clicking buttons, launching apps), use the standard UACC MCP tools as documented below. This mandate does NOT apply to standard UI automation.
+
+## 🖼️ Image Fetching — Mandatory Before Drawing
+
+**MANDATORY RULE**: Before calling `paint_image` or `paint_preset` to draw something, you **MUST first obtain a reference image** using the fetch tools. Do NOT skip this step. Do NOT guess file paths. Do NOT call `paint_image` without a valid `image_path`.
+
+### Correct Drawing Workflow
+
+```
+Step 1: list_fetched_images()          ← Check if a suitable image is already cached
+Step 2: fetch_line_art(query="cat")    ← Download line art if nothing cached matches
+Step 3: Check result["success"] == True
+Step 4: paint_image(image_path=result["image_path"])   ← Now draw it!
+```
+
+### Fetch Tools Reference
+
+| Tool | When to use |
+|---|---|
+| `fetch_line_art(query="...")` | **BEFORE any drawing task.** Downloads line art optimised for tracing. Returns `image_path` to pass to `paint_image`. Supports styles: `"outline"`, `"coloring_page"`, `"sketch"`, `"silhouette"`, `"cartoon"`, `"realistic"`. |
+| `fetch_image(query="...")` | For general images (photos, icons, logos) that keep original colors. NOT optimised for drawing. |
+| `list_fetched_images()` | Check the cache before downloading. Each returned `path` is ready for `paint_image`. |
+
+### Common Mistakes to Avoid
+
+- ❌ Calling `paint_image` without an `image_path` → will fail
+- ❌ Guessing a file path like `"C:\images\cat.png"` → use `fetch_line_art` to get a real path
+- ❌ Skipping `fetch_line_art` and going straight to `paint_image` → no image to draw
+- ❌ Not checking `result["success"]` after fetch → the download might have failed
+- ✅ Always use `fetch_line_art` first, then pass `result["image_path"]` to `paint_image`
 
 ## ⚡ UACC Planner MC (Mandatory Tool Selector)
 
@@ -158,7 +190,10 @@ UACC builds a semantic graph of cross-session automation patterns and supports B
 | Tool | What it does |
 |---|---|
 | `clipboard_read` / `clipboard_write` | Read from or write to the system clipboard. |
-| `paint_preset` / `paint_image` | Execute vector drawing presets or trace images onto MS Paint canvases. |
+| `paint_preset` / `paint_image` | Execute vector drawing presets or trace images onto MS Paint canvases. **Must have `image_path` from `fetch_line_art` first!** |
+| `fetch_line_art(query="...")` | **⚠️ MANDATORY before drawing.** Fetch line art from internet, auto-score, auto-crop, convert to B&W. Returns `image_path` for `paint_image`. |
+| `fetch_image(query="...")` | Fetch general images (photos, clipart, icons) keeping original colors. |
+| `list_fetched_images()` | List cached images. Check this first before fetching — reuse is faster. Each `path` works with `paint_image`. |
 | `execute_actions` / `get_action_history` | Batch sequential mouse/keyboard events or inspect recent action logs. |
 | `compare_snapshots` / `get_screen_diff` / `vlm_analyze` | Pixel/semantic diffing and general VLM scene analysis. |
 

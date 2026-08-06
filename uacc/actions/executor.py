@@ -65,13 +65,22 @@ class ActionExecutor:
         Returns:
             {"success": bool, "message": str, "action": str}
         """
+        from uacc.safety.mouse_sentinel import is_escape_pressed
+
         # User override sentinel check
-        if self.sentinel and self.sentinel.check_killed():
-            logger.warning("Action blocked by user override sentinel kill flag")
+        if is_escape_pressed() or (self.sentinel and self.sentinel.check_killed()):
+            was_escape = is_escape_pressed()
+            msg = (
+                "Action blocked: Escape key pressed"
+                if was_escape
+                else "Action blocked: User override detected (mouse moved/dragged)"
+            )
+            logger.warning(msg)
             return {
                 "success": False,
-                "message": "Action blocked: User override detected (mouse moved/dragged)",
+                "message": msg,
                 "killed": True,
+                "escape_pressed": was_escape,
                 "action": getattr(action, "action", "unknown"),
             }
 
