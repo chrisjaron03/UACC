@@ -25,6 +25,18 @@ logger = logging.getLogger(__name__)
 _SAFETY_LOG_DIR = os.path.expanduser("~/.uacc/safety_logs")
 
 
+def is_escape_pressed() -> bool:
+    """Check if Escape key is pressed (Win32 GetAsyncKeyState or fallback)."""
+    try:
+        import ctypes
+        if hasattr(ctypes, "windll") and hasattr(ctypes.windll, "user32"):
+            # VK_ESCAPE = 0x1B
+            return bool(ctypes.windll.user32.GetAsyncKeyState(0x1B) & 0x8000)
+    except Exception:
+        pass
+    return False
+
+
 class MouseSentinel:
     """Background thread monitoring mouse position for user override detection."""
 
@@ -155,7 +167,7 @@ class MouseSentinel:
         except Exception:
             return 40
 
-    def _log_override(self, distance: int, threshold: int) -> None:
+    def _log_override(self, distance: int, threshold: int, event_type: str = "mouse_override") -> None:
         try:
             os.makedirs(_SAFETY_LOG_DIR, exist_ok=True)
             try:
@@ -166,7 +178,7 @@ class MouseSentinel:
                 app_name = "unknown"
             entry = {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "event": "mouse_override",
+                "event": event_type,
                 "distance_px": distance,
                 "threshold_px": threshold,
                 "active_app": app_name,
@@ -175,29 +187,36 @@ class MouseSentinel:
             with open(log_file, "a") as f:
                 f.write(json.dumps(entry) + "\n")
         except Exception as exc:
-            logger.debug("Failed to log mouse override: %s", exc)
+            logger.debug("Failed to log override: %s", exc)
 
     def _monitor_loop(self) -> None:
         while self._running:
             if self._active:
-                with self._lock:
-                    killed = self._killed
-                    expected = self._expected_pos
-                    is_moving = self._is_moving
-                if not killed and expected is not None and not is_moving:
-                    cursor = self._get_cursor()
-                    if cursor is not None:
-                        cx, cy = cursor
-                        dx = cx - expected[0]
-                        dy = cy - expected[1]
-                        distance = math.sqrt(dx * dx + dy * dy)
-                        if distance > self._kill_distance:
-                            with self._lock:
-                                self._killed = True
-                                self._last_uacc_call = time.time()
-                            logger.warning(
-                                "User override detected: mouse moved %dpx (threshold: %dpx)",
-                                round(distance), self._kill_distance,
-                            )
-                            self._log_override(round(distance), self._kill_distance)
+                if is_escape_pressed():
+                    with self._lock:
+                        self._killed = True
+                        self._last_uacc_call = time.time()
+                    logger.warning("User override detected: Escape key pressed")
+                    self._log_override(0, 0, event_type="escape_key_override")
+                else:
+                    with self._lock:
+                        killed = self._killed
+                        expected = self._expected_pos
+                        is_moving = self._is_moving
+                    if not killed and expected is not None and not is_moving:
+                        cursor = self._get_cursor()
+                        if cursor is not None:
+                            cx, cy = cursor
+                            dx = cx - expected[0]
+                            dy = cy - expected[1]
+                            distance = math.sqrt(dx * dx + dy * dy)
+                            if distance > self._kill_distance:
+                                with self._lock:
+                                    self._killed = True
+                                    self._last_uacc_call = time.time()
+                                logger.warning(
+                                    "User override detected: mouse moved %dpx (threshold: %dpx)",
+                                    round(distance), self._kill_distance,
+                                )
+                                self._log_override(round(distance), self._kill_distance, event_type="mouse_override")
             time.sleep(0.05)

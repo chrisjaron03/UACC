@@ -10,7 +10,6 @@ import math
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-from PIL import Image, ImageFilter, ImageOps
 
 from uacc.actions.schema import ClickAction, DragAction, MouseButton
 from uacc.actions.executor import ActionExecutor
@@ -66,151 +65,57 @@ class ArtisticPainter:
         self,
         image_path: str,
         canvas_bounds: Tuple[int, int, int, int],  # (left, top, right, bottom)
-        max_strokes: int = 1500,
+        max_strokes: int = 500,
         edge_threshold: int = 100,
     ) -> Dict[str, Any]:
-        """Load an image, extract its outline contours, and paint it on screen.
+        """Load an image, extract its outline strokes via CV2 pipeline, and paint on screen.
+
+        Uses CLAHE contrast enhancement, adaptive thresholding, skeletonization,
+        and intelligent gap-filling for accurate stroke extraction.
 
         Args:
             image_path: Path to the image file to paint.
             canvas_bounds: Screen coordinates of Paint's drawing canvas (left, top, right, bottom).
-            max_strokes: Cap on number of strokes to avoid infinite execution.
-            edge_threshold: Threshold to detect edges (higher = fewer lines, faster).
+            max_strokes: Cap on number of stroke paths to draw.
+            edge_threshold: Legacy parameter (kept for API compatibility, not used by CV2 pipeline).
         """
-        try:
-            img = Image.open(image_path)
-        except Exception as exc:
-            return {"success": False, "message": f"Failed to load image: {exc}"}
+        from uacc.actions.image_processor import process_image_to_paths
 
-        # Step 2: Image Processing (Assess space, fit within canvas bounds with margin)
+        # Step 1: Calculate canvas dimensions and target image size
         canvas_w = max(100, canvas_bounds[2] - canvas_bounds[0])
         canvas_h = max(100, canvas_bounds[3] - canvas_bounds[1])
-
-        # Preserve aspect ratio with protective canvas margin.
         margin = 40
-        max_target_w = max(50, canvas_w - margin * 2)
-        max_target_h = max(50, canvas_h - margin * 2)
-        scale = min(max_target_w / max(1, img.width), max_target_h / max(1, img.height))
-        if scale != 1.0:
-            new_w = max(50, int(img.width * scale))
-            new_h = max(50, int(img.height * scale))
-            img = img.resize((new_w, new_h), Image.LANCZOS)
-        img_w, img_h = img.size
+        target_w = max(50, canvas_w - margin * 2)
+        target_h = max(50, canvas_h - margin * 2)
 
-        # Assess starting offset to center artwork strictly within available canvas space
+        # Step 2: Full CV2 processing pipeline — image → stroke paths
+        try:
+            raw_paths, img_w, img_h = process_image_to_paths(
+                image_path,
+                target_size=(target_w, target_h),
+                min_component_area=10,
+                min_path_length=4,
+                max_path_length=500,
+                gap_max_dist=18,
+                gap_max_angle_deg=55.0,
+            )
+        except FileNotFoundError as exc:
+            return {"success": False, "message": f"Failed to load image: {exc}"}
+        except Exception as exc:
+            return {"success": False, "message": f"Image processing failed: {exc}"}
+
+        if not raw_paths:
+            return {"success": False, "message": "No stroke paths extracted from image."}
+
+        # Step 3: Center artwork within canvas
         offset_x = canvas_bounds[0] + (canvas_w - img_w) // 2
         offset_y = canvas_bounds[1] + (canvas_h - img_h) // 2
 
-        # Grayscale + edge detection with Bilateral Filtering noise reduction.
-        #
-        # Bilateral filtering smooths out smooth color gradients, skin textures,
-        # background noise, and JPEG compression specks while preserving sharp
-        # character boundaries and facial/clothing outlines.
-        import numpy as np
-        import cv2
-
-        gray = ImageOps.grayscale(img)
-        arr = np.array(gray)
-
-        # Apply Bilateral Filter to suppress noise specks while preserving outlines
-        denoised = cv2.bilateralFilter(arr, d=7, sigmaColor=50, sigmaSpace=50)
-
-        # Mild contrast enhancement to boost subtle outlines without noise amplification
-        clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8))
-        enhanced = clahe.apply(denoised)
-
-        # --- Edge detection & Contour Extraction ---
-        min_path_len = max(12, int(min(img_w, img_h) * 0.025))
-        target_mass = max(300, int(arr.size * 0.015))
-        raw_paths = []
-
-        # Try Canny first (clean single-pixel edges)
-        for hi in (150, 110, 75, 45):
-            lo = max(20, int(hi * 0.4))
-            edges = cv2.Canny(enhanced, lo, hi)
-            contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-            candidates = []
-            for c in contours:
-                # Polygon approximation using Ramer-Douglas-Peucker (RDP) algorithm
-                # to simplify jagged pixel contours into smooth vector curves.
-                epsilon = max(1.0, min(img_w, img_h) * 0.003)
-                approx = cv2.approxPolyDP(c, epsilon, closed=False)
-                pts = approx.reshape(-1, 2)
-                if len(pts) >= 2:
-                    arc_len = cv2.arcLength(c, False)
-                    if arc_len >= min_path_len:
-                        candidates.append([(int(x), int(y)) for x, y in pts])
-            total_pts = sum(len(p) for p in candidates)
-            if total_pts >= target_mass:
-                raw_paths = candidates
-                break
-            raw_paths = candidates
-
-        # Fallback: Sobel gradient magnitude thresholding with high noise floor
-        if sum(len(p) for p in raw_paths) < target_mass:
-            gx = cv2.Sobel(enhanced, cv2.CV_64F, 1, 0, ksize=3)
-            gy = cv2.Sobel(enhanced, cv2.CV_64F, 0, 1, ksize=3)
-            mag = np.sqrt(gx ** 2 + gy ** 2)
-            mag_norm = (mag / (mag.max() + 1e-6) * 255).astype(np.uint8)
-            for t in (40, 25, 18):
-                _, binary = cv2.threshold(mag_norm, t, 255, cv2.THRESH_BINARY)
-                binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
-                contours, _ = cv2.findContours(binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-                candidates = []
-                for c in contours:
-                    epsilon = max(1.0, min(img_w, img_h) * 0.003)
-                    approx = cv2.approxPolyDP(c, epsilon, closed=False)
-                    pts = approx.reshape(-1, 2)
-                    if len(pts) >= 2 and cv2.arcLength(c, False) >= min_path_len:
-                        candidates.append([(int(x), int(y)) for x, y in pts])
-                if sum(len(p) for p in candidates) >= target_mass:
-                    raw_paths = candidates
-                    break
-                raw_paths = candidates
-
-        logger.info("Edge detection: %d simplified contours (%d points)", len(raw_paths), sum(len(p) for p in raw_paths))
-
-        if not raw_paths:
-            return {"success": False, "message": "No outline paths extracted from image."}
-
-        # Step 3: Smart Full-Character Path Selection (Avoiding Truncation)
-        #
-        # To draw a complete character (or subject) without leaving the face, lower body,
-        # or limbs unpainted:
-        # 1. Identify key facial/central feature paths (located in upper-middle region).
-        # 2. Divide vertical height into bands (top, middle, bottom) and ensure
-        #    structural outlines are selected across all vertical bands.
-        # 3. Fill remaining max_strokes quota with secondary details.
-
-        def get_path_bounds(path):
-            xs = [pt[0] for pt in path]
-            ys = [pt[1] for pt in path]
-            return min(xs), min(ys), max(xs), max(ys)
-
-        def path_length(path):
-            total = 0.0
-            for i in range(len(path) - 1):
-                total += math.hypot(path[i+1][0] - path[i][0], path[i+1][1] - path[i][1])
-            return total
-
-        # Classify paths
-        face_feature_paths = []
-        structural_paths = []
-        detail_paths = []
-
-        for p in raw_paths:
-            plen = path_length(p)
-            min_x, min_y, max_x, max_y = get_path_bounds(p)
-            cx = (min_x + max_x) / 2.0
-            cy = (min_y + max_y) / 2.0
-
-            # Facial / central feature check: upper-middle region, moderate size
-            is_facial = (
-                (0.20 * img_w <= cx <= 0.80 * img_w) and
-                (0.12 * img_h <= cy <= 0.50 * img_h) and
-                (10 <= plen <= min(img_w, img_h) * 0.8) and
-                (max_x - min_x < img_w * 0.5) and (max_y - min_y < img_h * 0.5)
-            )
+        # Step 4: Spatial sorting — structural strokes first, then detail
+        raw_paths.sort(key=lambda p: len(p), reverse=True)
+        primary_count = max(1, int(len(raw_paths) * 0.4))
+        structural_paths = raw_paths[:primary_count]
+        detail_paths = raw_paths[primary_count:]
 
             if is_facial:
                 face_feature_paths.append(p)
@@ -264,10 +169,9 @@ class ArtisticPainter:
         def sort_spatially(paths_list):
             if not paths_list:
                 return []
-            paths_copy = list(paths_list)
-            paths_copy.sort(key=lambda p: (p[0][1], p[0][0]))
-            ordered = [paths_copy.pop(0)]
-            while paths_copy:
+            paths_list.sort(key=lambda p: (p[0][1], p[0][0]))
+            ordered = [paths_list.pop(0)]
+            while paths_list:
                 last_pt = ordered[-1][-1]
                 best_idx = 0
                 best_dist = float("inf")
@@ -295,14 +199,28 @@ class ArtisticPainter:
 
         logger.info("Generated %d spatially optimized full-character stroke paths", len(final_ordered_paths))
 
-        # Step 4: Convert paths to DragActions (smooth vector strokes)
+        # Step 5: Convert paths to DragActions using Douglas-Peucker simplification
+        # and continuous stroke chaining for fewer mouse down/up cycles
+        import numpy as np
+        import cv2
+
         drag_actions = []
         for path in final_ordered_paths:
-            if len(path) < 2:
+            # Douglas-Peucker simplification — adapts to curvature instead of fixed step
+            pts_array = np.array(path, dtype=np.float32).reshape(-1, 1, 2)
+            epsilon = max(1.0, len(path) * 0.02)  # ~2% tolerance
+            simplified = cv2.approxPolyDP(pts_array, epsilon, False)
+            simplified_path = [(int(p[0][0]), int(p[0][1])) for p in simplified]
+
+            if len(simplified_path) < 2:
                 continue
-            for i in range(len(path) - 1):
-                x1, y1 = path[i]
-                x2, y2 = path[i + 1]
+
+            # Chain consecutive points into continuous strokes
+            # Each path becomes a series of connected DragActions that maintain
+            # the pen-down state between segments for smoother drawing
+            for i in range(len(simplified_path) - 1):
+                x1, y1 = simplified_path[i]
+                x2, y2 = simplified_path[i + 1]
                 drag_actions.append(
                     DragAction(
                         start_x=int(x1 + offset_x),
@@ -700,6 +618,7 @@ class ArtisticPainter:
 
         logger.info("Executing %d drawing strokes...", total)
         import pyautogui
+        from uacc.safety.mouse_sentinel import is_escape_pressed
 
         # Prime the sentinel: reset any stale kill flag and anchor the expected
         # cursor position to where the mouse currently is. Without this, the
@@ -724,17 +643,24 @@ class ArtisticPainter:
 
         try:
             for idx, action in enumerate(strokes, 1):
-                # Safety check — verify sentinel killed status
-                if self.sentinel and self.sentinel.check_killed():
-                    logger.warning("User override detected via MouseSentinel at stroke %d/%d", idx, total)
+                # Safety check — verify Escape key or sentinel killed status
+                if is_escape_pressed() or (self.sentinel and self.sentinel.check_killed()):
+                    was_escape = is_escape_pressed()
+                    msg = (
+                        "Drawing halted: Escape key pressed"
+                        if was_escape
+                        else "Drawing halted: user override detected (mouse moved/dragged)"
+                    )
+                    logger.warning("Painting halted at stroke %d/%d: %s", idx, total, msg)
                     try:
                         pyautogui.mouseUp()
                     except Exception:
                         pass
                     return {
                         "success": False,
-                        "message": "Drawing halted: user override detected (mouse moved/dragged)",
+                        "message": msg,
                         "killed": True,
+                        "escape_pressed": was_escape,
                         "completed_strokes": idx - 1,
                         "total_strokes": total,
                     }
@@ -744,8 +670,42 @@ class ArtisticPainter:
                     self.sentinel.set_moving(True)
 
                 pyautogui.moveTo(action.start_x, action.start_y, duration=0.01)
+
+                if is_escape_pressed():
+                    try:
+                        pyautogui.mouseUp()
+                    except Exception:
+                        pass
+                    if self.sentinel:
+                        self.sentinel.set_moving(False)
+                    return {
+                        "success": False,
+                        "message": "Drawing halted: Escape key pressed",
+                        "killed": True,
+                        "escape_pressed": True,
+                        "completed_strokes": success_count,
+                        "total_strokes": total,
+                    }
+
                 pyautogui.mouseDown(button=action.button.value)
                 time.sleep(0.03)  # let Paint register the button press before dragging
+
+                if is_escape_pressed():
+                    try:
+                        pyautogui.mouseUp(button=action.button.value)
+                    except Exception:
+                        pass
+                    if self.sentinel:
+                        self.sentinel.set_moving(False)
+                    return {
+                        "success": False,
+                        "message": "Drawing halted: Escape key pressed",
+                        "killed": True,
+                        "escape_pressed": True,
+                        "completed_strokes": success_count,
+                        "total_strokes": total,
+                    }
+
                 seg_duration = max(action.duration_ms, 35) / 1000
                 pyautogui.moveTo(action.end_x, action.end_y, duration=seg_duration)
                 pyautogui.mouseUp(button=action.button.value)

@@ -68,3 +68,43 @@ def test_artistic_painter_halts_on_mouse_drag_drift():
         assert res["success"] is False
         assert res["killed"] is True
         assert "user override" in res["message"].lower()
+
+
+def test_is_escape_pressed_helper():
+    from uacc.safety.mouse_sentinel import is_escape_pressed
+    res = is_escape_pressed()
+    assert isinstance(res, bool)
+
+
+def test_artistic_painter_halts_on_escape_key():
+    mock_executor = MagicMock()
+    mock_executor.execute.return_value = {"success": True, "message": "Click ok"}
+    painter = ArtisticPainter(executor=mock_executor)
+
+    strokes = [
+        DragAction(start_x=100, start_y=100, end_x=110, end_y=110, duration_ms=10),
+    ]
+
+    with patch("uacc.safety.mouse_sentinel.is_escape_pressed", return_value=True), \
+         patch("pyautogui.moveTo"), \
+         patch("pyautogui.mouseDown"), \
+         patch("pyautogui.mouseUp"):
+
+        res = painter._execute_strokes(strokes)
+        assert res["success"] is False
+        assert res["killed"] is True
+        assert res["escape_pressed"] is True
+        assert "escape key pressed" in res["message"].lower()
+
+
+def test_mouse_sentinel_detects_escape_key():
+    sentinel = MouseSentinel(kill_distance_px=40)
+    sentinel.start()
+    try:
+        with patch("uacc.safety.mouse_sentinel.is_escape_pressed", return_value=True):
+            import time
+            time.sleep(0.15)
+            assert sentinel.check_killed() is True
+    finally:
+        sentinel.stop()
+
