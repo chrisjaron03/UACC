@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -114,8 +114,8 @@ def preprocess_for_strokes(
 def preprocess_canny(
     bgr_img: np.ndarray,
     foreground_mask: Optional[np.ndarray] = None,
-    canny_low: int = 50,
-    canny_high: int = 150,
+    canny_low: Optional[int] = None,
+    canny_high: Optional[int] = None,
     blur_ksize: int = 5,
 ) -> np.ndarray:
     """Canny edge detection pipeline for complex colored images (e.g. photos, renders).
@@ -132,6 +132,19 @@ def preprocess_canny(
 
     # Gaussian blur to reduce noise before edge detection
     blurred = cv2.GaussianBlur(gray, (blur_ksize, blur_ksize), 0)
+
+    # Dynamic Canny thresholds based on image statistics
+    if canny_low is None or canny_high is None:
+        median = float(np.median(blurred))
+        sigma = 0.33
+        low = int(max(0, (1.0 - sigma) * median))
+        high = int(min(255, (1.0 + sigma) * median))
+        # Ensure minimum spread
+        if high - low < 30:
+            low = max(0, median - 20)
+            high = min(255, median + 20)
+        canny_low = canny_low or low
+        canny_high = canny_high or high
 
     # Canny edge detection
     edges = cv2.Canny(blurred, canny_low, canny_high)
@@ -400,6 +413,144 @@ def extract_stroke_paths(
     return raw_paths
 
 
+# ── Line Width Detection ──────────────────────────────────────
+
+def detect_line_widths(binary: np.ndarray) -> np.ndarray:
+    """Estimate local line width at each foreground pixel using distance transform.
+
+    Returns a float array where each foreground pixel has its distance to the
+    nearest background pixel (i.e. half the local line width).
+    """
+    fg = (binary > 0).astype(np.uint8) * 255
+    dist = cv2.distanceTransform(fg, cv2.DIST_L2, 5)
+    return dist
+
+
+def group_by_width(
+    skeleton: np.ndarray,
+    dist_map: np.ndarray,
+    width_bins: List[Tuple[int, int]],
+) -> List[np.ndarray]:
+    """Create separate binary masks for each width range.
+
+    Args:
+        skeleton: 1px skeleton binary image.
+        dist_map: Distance transform from detect_line_widths.
+        width_bins: List of (min_width, max_width) tuples in pixels.
+
+    Returns:
+        List of binary masks, one per width bin.
+    """
+    masks = []
+    for min_w, max_w in width_bins:
+        mask = np.zeros_like(skeleton)
+        # dist_map gives half-width, so multiply by 2
+        in_range = ((dist_map * 2 >= min_w) & (dist_map * 2 < max_w) & (skeleton > 0))
+        mask[in_range] = 255
+        masks.append(mask)
+    return masks
+
+
+# ── Color Sampling ────────────────────────────────────────────
+
+def sample_colors_along_paths(
+    bgr_img: np.ndarray,
+    paths: List[List[Tuple[int, int]]],
+    sample_every: int = 3,
+) -> List[List[Tuple[int, int, int]]]:
+    """Sample the dominant color at each path point from the original image.
+
+    Args:
+        bgr_img: Original BGR image.
+        paths: List of stroke paths (each a list of (x, y) coordinates).
+        sample_every: Sample color every N points (averaged for stability).
+
+    Returns:
+        List of paths, where each path is a list of (x, y, bgr_color_int) tuples.
+    """
+    h, w = bgr_img.shape[:2]
+    colored_paths = []
+
+    for path in paths:
+        colored_path = []
+        for i, (x, y) in enumerate(path):
+            # Clamp to image bounds
+            cx = max(0, min(x, w - 1))
+            cy = max(0, min(y, h - 1))
+
+            # Sample a small neighborhood for robustness
+            r = 1
+            y1, y2 = max(0, cy - r), min(h, cy + r + 1)
+            x1, x2 = max(0, cx - r), min(w, cx + r + 1)
+            patch = bgr_img[y1:y2, x1:x2]
+
+            # Use median of patch for robustness to noise
+            b = int(np.median(patch[:, :, 0]))
+            g = int(np.median(patch[:, :, 1]))
+            r_val = int(np.median(patch[:, :, 2]))
+
+            # Convert to single int for easy comparison: BGR packed into int
+            color_int = (b << 16) | (g << 8) | r_val
+            colored_path.append((x, y, color_int))
+        colored_paths.append(colored_path)
+
+    return colored_paths
+
+
+def group_paths_by_color(
+    colored_paths: List[List[Tuple[int, int, int]]],
+    color_tolerance: int = 30,
+) -> Dict[int, List[List[Tuple[int, int]]]]:
+    """Group colored paths by dominant color for multi-pass drawing.
+
+    Args:
+        colored_paths: Paths with embedded color ints.
+        color_tolerance: Max color distance to consider same color.
+
+    Returns:
+        Dict mapping color_int -> list of (x, y) paths.
+    """
+    def color_distance(c1: int, c2: int) -> float:
+        b1, g1, r1 = (c1 >> 16) & 0xFF, (c1 >> 8) & 0xFF, c1 & 0xFF
+        b2, g2, r2 = (c2 >> 16) & 0xFF, (c2 >> 8) & 0xFF, c2 & 0xFF
+        return math.sqrt((b1 - b2) ** 2 + (g1 - g2) ** 2 + (r1 - r2) ** 2)
+
+    color_groups: Dict[int, List[List[Tuple[int, int]]]] = {}
+    representative_colors: List[int] = []
+
+    for colored_path in colored_paths:
+        if not colored_path:
+            continue
+
+        # Get dominant color (most frequent within tolerance)
+        colors = [c for _, _, c in colored_path]
+
+        # Find the best representative color
+        best_color = colors[0]
+        best_count = 0
+        for candidate in set(colors):
+            count = sum(1 for c in colors if color_distance(c, candidate) < color_tolerance)
+            if count > best_count:
+                best_count = count
+                best_color = candidate
+
+        # Find or create group
+        placed = False
+        for rep in representative_colors:
+            if color_distance(best_color, rep) < color_tolerance:
+                xy_path = [(x, y) for x, y, _ in colored_path]
+                color_groups[rep].append(xy_path)
+                placed = True
+                break
+
+        if not placed:
+            representative_colors.append(best_color)
+            xy_path = [(x, y) for x, y, _ in colored_path]
+            color_groups[best_color] = [xy_path]
+
+    return color_groups
+
+
 # ── Full Pipeline ─────────────────────────────────────────────
 
 def process_image_to_paths(
@@ -410,6 +561,7 @@ def process_image_to_paths(
     max_path_length: int = 500,
     gap_max_dist: int = 18,
     gap_max_angle_deg: float = 55.0,
+    extract_color: bool = False,
 ) -> Tuple[List[List[Tuple[int, int]]], int, int]:
     """Full pipeline: load image -> preprocess -> skeletonize -> gap-fill -> extract paths.
 
@@ -425,6 +577,7 @@ def process_image_to_paths(
         max_path_length: Maximum single stroke path length.
         gap_max_dist: Maximum distance for gap-filling endpoint connections.
         gap_max_angle_deg: Maximum angular deviation for gap-filling.
+        extract_color: If True, also return color-sampled paths.
 
     Returns:
         Tuple of (paths, image_width, image_height) where paths is a list of
@@ -447,14 +600,28 @@ def process_image_to_paths(
 
     logger.info("Processing image %s (%dx%d) for stroke extraction", image_path, img_w, img_h)
 
-    # Select preprocessing strategy based on image type
-    if alpha_mask is not None:
+    # Content-aware preprocessing strategy selection
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    unique_colors = len(np.unique(img.reshape(-1, img.shape[2] if len(img.shape) > 2 else 1), axis=0))
+    mean_intensity = np.mean(gray)
+    std_intensity = np.std(gray)
+
+    # Decide if this is line art (few colors, high contrast) or photo (many colors, gradients)
+    is_line_art = unique_colors < 500 and std_intensity > 40
+    has_alpha = alpha_mask is not None
+
+    if has_alpha:
         # Complex colored image with alpha -- use Canny for clean outlines
         logger.info("Alpha channel detected -- using Canny edge pipeline with foreground masking")
         binary = preprocess_canny(img, foreground_mask=alpha_mask)
-    else:
-        # Line art / no alpha -- use adaptive thresholding
+    elif is_line_art:
+        # Line art / sketch -- adaptive thresholding preserves fine lines
+        logger.info("Line art detected (%d colors, std=%.1f) -- using adaptive threshold", unique_colors, std_intensity)
         binary = preprocess_for_strokes(img)
+    else:
+        # Photo / complex image -- Canny with dynamic thresholds
+        logger.info("Photo detected (%d colors, std=%.1f) -- using Canny with dynamic thresholds", unique_colors, std_intensity)
+        binary = preprocess_canny(img, foreground_mask=alpha_mask)
 
     logger.debug("Preprocessing produced %d foreground pixels", cv2.countNonZero(binary))
 
@@ -467,9 +634,22 @@ def process_image_to_paths(
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
     clean = cv2.morphologyEx(clean, cv2.MORPH_CLOSE, kernel)
 
-    # Skeletonize to 1px strokes
-    skel = skeletonize_binary(clean)
-    logger.debug("Skeleton: %d foreground pixels", cv2.countNonZero(skel))
+    # Check if skeletonization is needed -- skip for thin line art (< 2px avg width)
+    fg_pixels = cv2.countNonZero(clean)
+    if fg_pixels > 0:
+        dist_check = cv2.distanceTransform((clean > 0).astype(np.uint8) * 255, cv2.DIST_L2, 5)
+        mean_width = np.mean(dist_check[dist_check > 0]) * 2  # distance gives half-width
+    else:
+        mean_width = 0
+
+    if mean_width < 2.5:
+        # Already thin line art -- skip skeletonization to preserve detail
+        logger.info("Thin line art detected (mean width=%.1f px) -- skipping skeletonization", mean_width)
+        skel = clean
+    else:
+        # Skeletonize to 1px strokes
+        skel = skeletonize_binary(clean)
+        logger.debug("Skeleton: %d foreground pixels", cv2.countNonZero(skel))
 
     # Fill gaps between broken strokes
     filled = fill_skeleton_gaps(skel, max_dist=gap_max_dist,

@@ -66,6 +66,7 @@ class ArtisticPainter:
         canvas_bounds: Tuple[int, int, int, int],  # (left, top, right, bottom)
         max_strokes: int = 500,
         edge_threshold: int = 100,
+        with_color: bool = False,
     ) -> Dict[str, Any]:
         """Load an image, extract its outline strokes via CV2 pipeline, and paint on screen.
 
@@ -77,8 +78,12 @@ class ArtisticPainter:
             canvas_bounds: Screen coordinates of Paint's drawing canvas (left, top, right, bottom).
             max_strokes: Cap on number of stroke paths to draw.
             edge_threshold: Legacy parameter (kept for API compatibility, not used by CV2 pipeline).
+            with_color: If True, sample colors from original image and draw with them.
         """
-        from uacc.actions.image_processor import process_image_to_paths
+        from uacc.actions.image_processor import (
+            process_image_to_paths, detect_line_widths, sample_colors_along_paths,
+            group_paths_by_color, load_image,
+        )
 
         # Step 1: Calculate canvas dimensions and target image size
         canvas_w = max(100, canvas_bounds[2] - canvas_bounds[0])
@@ -105,6 +110,25 @@ class ArtisticPainter:
 
         if not raw_paths:
             return {"success": False, "message": "No stroke paths extracted from image."}
+
+        # Step 2b: Sample colors if requested
+        color_groups = None
+        if with_color:
+            try:
+                img_loaded, _ = load_image(image_path)
+                # Resize to match processing dimensions
+                h_orig, w_orig = img_loaded.shape[:2]
+                scale = min(target_w / w_orig, target_h / h_orig, 1.0)
+                if scale < 1.0:
+                    new_w, new_h = int(w_orig * scale), int(h_orig * scale)
+                    img_loaded = cv2.resize(img_loaded, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+                colored = sample_colors_along_paths(img_loaded, raw_paths)
+                color_groups = group_paths_by_color(colored, color_tolerance=30)
+                logger.info("Color sampling: %d distinct color groups", len(color_groups))
+            except Exception as exc:
+                logger.warning("Color sampling failed, falling back to black: %s", exc)
+                with_color = False
 
         # Step 3: Center artwork within canvas
         offset_x = canvas_bounds[0] + (canvas_w - img_w) // 2
@@ -159,9 +183,9 @@ class ArtisticPainter:
 
         drag_actions = []
         for path in final_ordered_paths:
-            # Douglas-Peucker simplification — adapts to curvature instead of fixed step
+            # Douglas-Peucker simplification — reduced tolerance for more accurate curves
             pts_array = np.array(path, dtype=np.float32).reshape(-1, 1, 2)
-            epsilon = max(1.0, len(path) * 0.02)  # ~2% tolerance
+            epsilon = max(0.5, len(path) * 0.008)  # ~0.8% tolerance (was 2%)
             simplified = cv2.approxPolyDP(pts_array, epsilon, False)
             simplified_path = [(int(p[0][0]), int(p[0][1])) for p in simplified]
 
@@ -169,8 +193,6 @@ class ArtisticPainter:
                 continue
 
             # Chain consecutive points into continuous strokes
-            # Each path becomes a series of connected DragActions that maintain
-            # the pen-down state between segments for smoother drawing
             for i in range(len(simplified_path) - 1):
                 x1, y1 = simplified_path[i]
                 x2, y2 = simplified_path[i + 1]
@@ -186,7 +208,11 @@ class ArtisticPainter:
                     )
                 )
 
-        return self._execute_strokes(drag_actions)
+        # Step 6: Execute drawing (colored or black)
+        if with_color and color_groups:
+            return self._execute_colored_strokes(color_groups, offset_x, offset_y, max_strokes)
+        else:
+            return self._execute_strokes(drag_actions)
 
     # ── Masterpiece Preset Generators ─────────────────────────
 
@@ -606,6 +632,139 @@ class ArtisticPainter:
             "total_strokes": total,
             "success_strokes": success_count,
         }
+
+    def _execute_colored_strokes(
+        self,
+        color_groups: Dict[int, List[List[Tuple[int, int]]]],
+        offset_x: int,
+        offset_y: int,
+        max_strokes: int,
+    ) -> Dict[str, Any]:
+        """Execute colored drawing by switching colors between groups.
+
+        Args:
+            color_groups: Dict mapping color_int -> list of (x, y) paths.
+            offset_x: X offset to center artwork on canvas.
+            offset_y: Y offset to center artwork on canvas.
+            max_strokes: Maximum total strokes to draw.
+        """
+        import pyautogui
+        import cv2
+        import numpy as np
+        from uacc.safety.mouse_sentinel import is_escape_pressed
+
+        # Sort color groups by path count (largest first for visual impact)
+        sorted_colors = sorted(color_groups.items(), key=lambda kv: sum(len(p) for p in kv[1]), reverse=True)
+
+        total_strokes = 0
+        total_colors = len(sorted_colors)
+
+        for color_idx, (color_int, paths) in enumerate(sorted_colors):
+            if total_strokes >= max_strokes:
+                break
+
+            # Convert color int to RGB for MS Paint color picker
+            b = (color_int >> 16) & 0xFF
+            g = (color_int >> 8) & 0xFF
+            r = color_int & 0xFF
+
+            # Switch color in Paint (click Edit Colors → set custom color)
+            try:
+                self._switch_paint_color(r, g, b)
+            except Exception as exc:
+                logger.warning("Failed to switch to color (%d,%d,%d): %s", r, g, b, exc)
+                # Fall back to black
+                self.executor.execute(ClickAction(x=170, y=105, button=MouseButton.LEFT, reasoning="Fallback to black pencil"))
+
+            # Draw all paths in this color
+            for path in paths:
+                if total_strokes >= max_strokes:
+                    break
+
+                if is_escape_pressed() or (self.sentinel and self.sentinel.check_killed()):
+                    try:
+                        pyautogui.mouseUp()
+                    except Exception:
+                        pass
+                    return {
+                        "success": False,
+                        "message": "Drawing halted by user",
+                        "killed": True,
+                        "completed_strokes": total_strokes,
+                        "total_strokes": max_strokes,
+                    }
+
+                if len(path) < 2:
+                    continue
+
+                # Draw path as continuous stroke
+                start_x = path[0][0] + offset_x
+                start_y = path[0][1] + offset_y
+
+                pyautogui.moveTo(start_x, start_y, duration=0.01)
+                pyautogui.mouseDown(button="left")
+                time.sleep(0.03)
+
+                for i in range(1, len(path)):
+                    x = path[i][0] + offset_x
+                    y = path[i][1] + offset_y
+                    pyautogui.moveTo(x, y, duration=0.015)
+
+                pyautogui.mouseUp(button="left")
+                total_strokes += 1
+
+                if self.sentinel:
+                    self.sentinel.set_expected_position(path[-1][0] + offset_x, path[-1][1] + offset_y)
+
+        logger.info("Colored drawing complete: %d strokes across %d colors", total_strokes, total_colors)
+        return {
+            "success": True,
+            "message": f"Completed {total_strokes} colored strokes across {total_colors} color groups",
+            "total_strokes": total_strokes,
+            "colors_used": total_colors,
+        }
+
+    def _switch_paint_color(self, r: int, g: int, b: int) -> None:
+        """Switch the active color in MS Paint using Edit Colors dialog."""
+        import pyautogui
+        import time
+
+        # Click "Edit Colors" button in the toolbar (approximate position)
+        # This opens the color picker dialog
+        self.executor.execute(ClickAction(x=240, y=105, button=MouseButton.LEFT, reasoning="Open Edit Colors"))
+        time.sleep(0.3)
+
+        # Click "Define Custom Colors >>" if expanded dialog is needed
+        try:
+            pyautogui.hotkey('alt', 'u')  # Usually expands custom colors
+            time.sleep(0.2)
+        except Exception:
+            pass
+
+        # Type RGB values into the dialog fields
+        # Red field
+        pyautogui.hotkey('alt', 'r')
+        time.sleep(0.05)
+        pyautogui.hotkey('ctrl', 'a')
+        pyautogui.typewrite(str(r), interval=0.01)
+
+        # Green field
+        pyautogui.hotkey('alt', 'e')
+        time.sleep(0.05)
+        pyautogui.hotkey('ctrl', 'a')
+        pyautogui.typewrite(str(g), interval=0.01)
+
+        # Blue field
+        pyautogui.hotkey('alt', 'b')
+        time.sleep(0.05)
+        pyautogui.hotkey('ctrl', 'a')
+        pyautogui.typewrite(str(b), interval=0.01)
+
+        # Click "Add to Custom Colors" then "OK"
+        pyautogui.hotkey('alt', 'a')
+        time.sleep(0.1)
+        pyautogui.press('enter')
+        time.sleep(0.2)
 
     def cleanup(self) -> None:
         """Restore pyautogui global state after painting."""

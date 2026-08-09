@@ -1509,7 +1509,7 @@ def paint_preset(preset_name: str) -> str:
 
 
 @mcp.tool()
-def paint_image(image_path: str, max_strokes: int = 500) -> str:
+def paint_image(image_path: str, max_strokes: int = 500, with_color: bool = False) -> str:
     """Sketch the outline of an image file on screen inside MS Paint.
 
     Launches Paint, loads the image from disk, extracts its outline
@@ -1532,6 +1532,9 @@ def paint_image(image_path: str, max_strokes: int = 500) -> str:
                     Get this from ``fetch_line_art`` or
                     ``list_fetched_images``.
         max_strokes: Maximum brush strokes to draw (default 500).
+        with_color: If True, sample colors from original image and draw
+                    with them (multi-pass colored drawing). Default False
+                    (black outlines only).
 
     Returns:
         JSON with success status and drawing stroke details.
@@ -1575,12 +1578,12 @@ def paint_image(image_path: str, max_strokes: int = 500) -> str:
         from uacc.actions.artistic_painter import ArtisticPainter as FastPainter
         painter = FastPainter()
         try:
-            result = painter.draw_image(image_path, canvas_bounds, max_strokes=max_strokes)
+            result = painter.draw_image(image_path, canvas_bounds, max_strokes=max_strokes, with_color=with_color)
         finally:
             painter.cleanup()
 
         session = get_session()
-        session.log_action("paint_image", {"image_path": image_path, "max_strokes": max_strokes}, result)
+        session.log_action("paint_image", {"image_path": image_path, "max_strokes": max_strokes, "with_color": with_color}, result)
 
         return json.dumps(result)
 
