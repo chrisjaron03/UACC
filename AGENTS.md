@@ -1,6 +1,7 @@
 # UACC — AI Agent Instructions
 
 ## 🛜 MCP Tools Only — No Python Scripts
+First read all the tools thoroughly before execution and mmake this as a skill for yourself.
 
 UACC exposes **70 native MCP tools** (`mcp_uacc_*`) that you can call directly. **Do NOT write separate Python scripts** that wrap or re-implement UACC's functionality. Use the built-in MCP tools:
 
@@ -18,11 +19,60 @@ UACC exposes **70 native MCP tools** (`mcp_uacc_*`) that you can call directly. 
 | Fetch a general image | `mcp_uacc_fetch_image(query="...")` |
 | Check cached images | `mcp_uacc_list_fetched_images()` |
 
-## 🎨 Artistic Painter Mandate — Drawing & Design Tasks Only
+## 🎨 Painting with UACC — Complete Agent Guide
 
-For ANY drawing task in ANY drawing app (Paint, Photoshop, Krita, etc.) or design app (Figma, Canva, Illustrator, etc.), you **MUST use `paint_preset` or `paint_image` exclusively** — these are the only "artistic painter" tools authorized for drawing/design work. Never attempt to draw by manually clicking, dragging, or issuing raw mouse coordinates. The artistic painter handles stroke planning, human-like Bézier curves, canvas bounds, and tracing.
+UACC paints **inside Microsoft Paint** using an artistic stroke engine. You never click, drag, or draw with raw coordinates — you describe what to paint and UACC does the strokes. **This is mandatory for ALL drawing tasks** in any drawing/design app (Paint, Photoshop, Krita, Figma, Canva, Illustrator). The mandate does NOT apply to standard UI automation (clicking buttons, typing, navigating).
 
-For all other non-drawing tasks (UI navigation, typing, clicking buttons, launching apps), use the standard UACC MCP tools as documented below. This mandate does NOT apply to standard UI automation.
+### The 3 painting tools
+
+| Tool | Purpose |
+|---|---|
+| `fetch_image(query, output_path?, source?)` | Get a reference image **before** painting: `source="auto"` (default) picks Pollinations AI for generic scenes, Web search for named subjects/characters/monuments, direct download for URLs. Returns `image_path` — pass that path to `paint_image`. |
+| `paint_image(image_path, max_strokes=500)` | Launch Paint, load the image, extract its **outline contours** (edge detection), and trace them as brush strokes. Uses `max_strokes` (default 500) to cap the drawing. |
+| `paint_preset(preset_name)` | Launch Paint and draw a built-in vector design. Valid presets: `"rose"`, `"galaxy"`, `"mountains"`, `"house"`, `"peacock"`. No image needed. |
+
+### Which tool to use — decision tree
+
+```
+Does the user want a known built-in design (rose, galaxy, mountains, house, peacock)?
+├─ YES → paint_preset(preset_name)
+└─ NO → do they want an outline sketch of a specific subject (character, monument, animal, scene)?
+     ├─ YES → fetch_image(query) → paint_image(image_path)
+     └─ NO / pure imagination → fetch_image("detailed description of the scene", source="pollinations")
+            → paint_image(image_path)
+```
+
+### The mandatory workflow (5 steps)
+
+1. **`uacc_planner(task_description=...)`** — ALWAYS call first. It computes canvas bounds, stroke caps, and tool sequence. (Planner is mandatory before ANY UACC interaction, drawing included.)
+2. **Get the reference image** — `fetch_image(query="...")` for subjects/scenes; skip this step for presets.
+3. **Paint** — call `paint_image(image_path=<path from fetch_image>)` or `paint_preset(preset_name="...")`. Both tools launch + maximize Paint automatically, compute the canvas area safely inside the window, and draw with human-like Bézier strokes.
+4. **Verify** — `screenshot()` (or `screenshot(overlay="markers")`) to visually confirm the drawing rendered inside the Paint canvas. If it failed or looks wrong, check the tool's JSON `success` field and retry with adjusted parameters.
+5. **Report** — tell the user what was painted and where (the Paint window stays open with the finished drawing).
+
+### How `paint_image` works (so you can tune it)
+
+- Loads the image, fits it inside Paint's canvas bounds with a 40px margin (aspect ratio preserved, auto-centered).
+- Converts to grayscale → `FIND_EDGES` filter → binary thresholding → traces contiguous edge paths (DFS).
+- Strokes follow the traced contours; short noise paths (<4 px) are dropped.
+- `max_strokes` caps the total — raise it for detailed subjects (e.g. 1000–1500), lower it for quick simple sketches (faster).
+- Works best with images that have **strong, clean outlines**: photos of people/objects, logos, cartoons, line art. Low-contrast or blurry images produce few edges.
+
+### Key behaviors & gotchas
+
+- `fetch_image` returns `{"success": true, "image_path": "C:\\Users\\...\\<name>.png", ...}` — **always extract and reuse that path**; the file is stored under `~/.uacc/images/` by default.
+- Both paint tools are self-contained: they launch/focus `mspaint`, maximize it, draw, and leave Paint open. Do NOT pre-launch Paint or reposition windows yourself.
+- While a paint operation runs, **don't move the mouse** — the painter uses the cursor; the safety sentinel halts automation if the mouse is pulled away (user override). If that happens, wait for the user to resume, then call `acknowledge_user_override()`.
+- If `paint_image` fails to load a path (wrong/missing file), re-run `fetch_image` to get a fresh valid path.
+- `paint_preset` with an unknown name returns `success: false` — only the 5 preset names are valid.
+- Drawing is **outline/line-art style** — edges are traced, not filled. Manage expectations accordingly (it's a sketch, not a photoreal render).
+
+### What agents must NEVER do when painting
+
+- ❌ Never draw by hand — no `click`/`drag`/`execute_actions` with raw coordinates for strokes.
+- ❌ Never guess `paint_image` paths — always go through `fetch_image` first.
+- ❌ Never use `screenshot(overlay="grid")` coordinates to aim strokes at the canvas — the painter computes canvas bounds itself.
+- ❌ Never write Python scripts to paint — use the MCP tools only.
 
 ## 🖼️ Image Fetching — Mandatory Before Drawing
 
@@ -202,7 +252,6 @@ UACC builds a semantic graph of cross-session automation patterns and supports B
 | Tool | What it does |
 |---|---|
 | `acknowledge_user_override()` | Acknowledge user resume confirmation and reset mouse pull-away kill flag. |
-| `set_kill_distance(pixels)` | Configure mouse pull-away safety kill distance (0 = adaptive default). |
 
 ## ⚙️ Windows Per-Monitor DPI Awareness
 
