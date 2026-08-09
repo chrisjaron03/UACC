@@ -203,7 +203,7 @@ class ArtisticPainter:
                         end_x=int(x2 + offset_x),
                         end_y=int(y2 + offset_y),
                         button=MouseButton.LEFT,
-                        duration_ms=15,
+                        duration_ms=30,
                         reasoning="Drawing outline stroke",
                     )
                 )
