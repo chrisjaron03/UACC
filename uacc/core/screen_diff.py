@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 from PIL import Image
@@ -103,7 +103,8 @@ class DiffResult:
         lines = []
         if self.changed:
             lines.append(
-                f"Changed: {self.changed_percentage:.1f}% of screen ({self.total_pixels_changed} pixels)"
+                f"Changed: {self.changed_percentage:.1f}% of screen "
+                f"({self.total_pixels_changed} pixels)"
             )
             for r in self.regions[:5]:
                 lines.append(
@@ -167,8 +168,9 @@ def compute_semantic_diff(
         window_title_after=after_window_title,
     )
 
-    # Window title change
-    if before_window_title and after_window_title and before_window_title != after_window_title:
+    # Window title change — also catches a window opening ("" → title)
+    # or closing (title → ""), which the previous truthiness check missed.
+    if before_window_title != after_window_title and (before_window_title or after_window_title):
         sem.window_title_changed = True
 
     # Text map content diff
